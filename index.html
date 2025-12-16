@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<title>Ekvationstränare – Version 18</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #eef2f7;
+        margin: 40px;
+    }
+    #container {
+        position: relative;
+        background: white;
+        padding: 20px 24px;
+        border-radius: 12px;
+        width: 720px;
+        max-width: 100%;
+        margin: auto;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border-top: 5px solid #4CAF50;
+    }
+    h2 {
+        margin-top: 0;
+        color: #2e7d32;
+    }
+    input, button, select {
+        padding: 8px 10px;
+        font-size: 16px;
+        margin-top: 5px;
+    }
+    input, select {
+        border-radius: 6px;
+        border: 1px solid #ccc;
+    }
+    button {
+        margin-right: 5px;
+        border-radius: 6px;
+        border: none;
+        background-color: #4CAF50;
+        color: #fff;
+        cursor: pointer;
+        font-weight: 500;
+    }
+    button:hover {
+        background-color: #43a047;
+    }
+    #steps {
+        margin-top: 20px;
+        background: #fafafa;
+        padding: 15px;
+        border-radius: 10px;
+        min-height: 120px;
+        max-height: 320px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+    }
+    .step {
+        padding: 5px 0;
+        border-bottom: 1px solid #eee;
+        font-family: "Consolas", "Courier New", monospace;
+        display: flex;
+        justify-content: center;
+        align-items: baseline;
+        gap: 6px;
+    }
+    .step:last-child {
+        border-bottom: none;
+    }
+    .step .left {
+        text-align: right;
+        min-width: 40%;
+        white-space: nowrap;
+    }
+    .step .eq {
+        text-align: center;
+        min-width: 10px;
+    }
+    .step .right {
+        text-align: left;
+        min-width: 40%;
+        white-space: nowrap;
+    }
+    .op-green {
+        color: #89dc8e;
+        font-weight: bold;
+    }
+    #suggestion {
+        margin-top: 15px;
+        font-style: italic;
+        color: #1b5e20;
+        background: #e8f5e9;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #c8e6c9;
+    }
+    .button-row {
+        margin-top: 6px;
+        margin-bottom: 4px;
+    }
+    #scoreBox {
+        position: absolute;
+        top: 12px;
+        right: 16px;
+        background: #fffde7;
+        border: 1px solid #ffe082;
+        border-radius: 999px;
+        padding: 6px 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        color: #f57f17;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    #scoreBox span.emoji {
+        font-size: 20px;
+    }
+
+    /* Zoo + shop */
+    #zooSection {
+        margin-top: 25px;
+        padding-top: 10px;
+        border-top: 1px solid #ddd;
+    }
+    #zooArea {
+        margin-top: 10px;
+        min-height: 60px;
+        background: #f9fbe7;
+        border: 1px solid #dce775;
+        border-radius: 10px;
+        padding: 10px;
+    }
+    #zooArea.empty {
+        display: flex;
+        align-items: center;
+        color: #9e9e9e;
+        font-size: 14px;
+    }
+    #zooZones {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .zoneBox {
+        flex: 1 1 45%;
+        min-width: 200px;
+        border-radius: 8px;
+        padding: 8px 10px;
+        border: 1px solid #c5e1a5;
+    }
+    .zone-forest {
+        background: #f1f8e9;
+        border-color: #c5e1a5;
+    }
+    .zone-savannah {
+        background: #fffde7;
+        border-color: #ffe082;
+    }
+    .zone-ocean {
+        background: #e3f2fd;
+        border-color: #90caf9;
+    }
+    .zone-ice {
+        background: #e0f7fa;
+        border-color: #80deea;
+    }
+    .zone-fantasy {
+        background: #f3e5f5;
+        border-color: #ce93d8;
+    }
+
+    .zoneTitle {
+        font-size: 14px;
+        font-weight: bold;
+        margin-bottom: 4px;
+        color: #33691e;
+    }
+    .zoneDecor {
+        font-size: 18px;
+        margin-bottom: 6px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .decorEmoji {
+        filter: drop-shadow(0 0 1px rgba(0,0,0,0.1));
+    }
+    .zoneAnimals {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .zoneAnimal {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        background: rgba(255,255,255,0.6);
+        border: 1px solid rgba(255,255,255,0.8);
+        font-size: 24px;
+    }
+
+    /* Djuraffären */
+    #shopPanel {
+        margin-top: 16px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: #fff3e0;
+        border: 1px solid #ffcc80;
+    }
+    #shopHeader {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        color: #e65100;
+        margin-bottom: 4px;
+    }
+    #shopHeader span.emoji {
+        font-size: 22px;
+    }
+    #shopSub {
+        font-size: 14px;
+        color: #6d4c41;
+        margin-bottom: 8px;
+    }
+    #shopButtons button {
+        margin-top: 6px;
+        margin-right: 6px;
+        margin-bottom: 6px;
+        font-size: 14px;
+        padding: 6px 10px;
+    }
+</style>
+</head>
+<body>
+
+<div id="container">
+    <div id="scoreBox">
+        <span class="emoji">⭐</span>
+        <span id="scoreValue">0</span>
+    </div>
+
+    <h2>Ekvationstränare – testa steg för steg</h2>
+
+    <p>
+        Du kan skriva en egen ekvation, t.ex. <b>3x + 5 = 20</b>,<br>
+        <b>eller klicka på en av knapparna för att slumpa fram en ekvation.</b><br>
+        (Du kan skriva <b>3x</b> eller <b>3*x</b>, programmet fixar stjärnan åt dig.)
+    </p>
+
+    <input id="eqInput" type="text" style="width: 70%;" placeholder="t.ex. 3x + 5 = 20">
+    <div class="button-row">
+        <button onclick="startFromInput()">Starta med min ekvation</button>
+        <button onclick="startRandom()">Slumpa ekvation (x i ett led)</button>
+        <button onclick="startRandomBoth()">Slumpa ekvation (x i båda leden)</button>
+    </div>
+
+    <h3>Nytt steg:</h3>
+    <p>
+        Vad vill du göra med ekvationen nu? Testa t.ex. <b>+7, -3, *2, /4</b> eller <b>+2x</b>.
+    </p>
+    <input id="opInput" type="text" style="width: 60%;" disabled placeholder="t.ex. -5, /3 eller -2x">
+    <button onclick="applyOp()" id="opButton" disabled>Kör steg</button>
+
+    <h3>Steg:</h3>
+    <div id="steps"></div>
+
+    <div id="suggestion">
+        Fundera på vad du vill göra för att komma närmare att x blir ensamt.
+    </div>
+
+    <!-- ZOO-DELEN -->
+    <div id="zooSection">
+        <h3 id="zooTitle">Ditt stjärn-zoo 🐾</h3>
+
+        <div style="margin-bottom:8px;">
+            <label for="zooNameInput">Döp ditt zoo: </label>
+            <input id="zooNameInput" type="text" style="width: 50%; max-width:260px;" placeholder="t.ex. Matteparken">
+            <button onclick="saveZooName()">Spara namn</button>
+        </div>
+
+        <div id="zooArea" class="empty">
+            Inga djur ännu. Lös ekvationer, samla stjärnor och köp dina första djur!
+        </div>
+
+        <!-- AFFÄREN -->
+        <div id="shopPanel">
+            <div id="shopHeader">
+                <span class="emoji">🏪</span>
+                <span>Djuraffären</span>
+            </div>
+            <div id="shopSub">
+                Byt dina stjärnor mot djur och placera dem i olika områden i ditt zoo.
+            </div>
+
+            <h3 style="margin-top:4px; margin-bottom:4px;">Köp djur för dina stjärnor</h3>
+            <p style="margin-top:0;">Välj först område, klicka sedan på ett djur för att köpa det.</p>
+
+            <p style="margin-top:4px; margin-bottom:2px;">Område:</p>
+            <select id="zoneSelect">
+                <option value="forest">Skog</option>
+                <option value="savannah">Savann</option>
+                <option value="ocean">Hav</option>
+                <option value="ice">Is</option>
+                <option value="fantasy">Fantasi</option>
+            </select>
+
+            <div id="shopButtons">
+                <!-- Fylls i med JavaScript beroende på vald zon -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ========= DATA & STATE =========
+
+let leftSideObj = null;
+let rightSideObj = null;
+let score = 0;
+
+// zoo: djur per zon (sparas som emoji-listor)
+let zooAnimalsByZone = {
+    forest:  [],
+    savannah:[],
+    ocean:   [],
+    ice:     [],
+    fantasy: []
+};
+
+let zooName = "";
+
+// djur per zon
+const SHOP_BY_ZONE = {
+    forest: [
+        { key: "mouse",  emoji: "🐭", label: "Mus",     cost: 2 },
+        { key: "deer",   emoji: "🦌", label: "Hjort",   cost: 3 },
+        { key: "squirrel", emoji: "🐿️", label: "Ekorre", cost: 3 },
+        { key: "owl",    emoji: "🦉", label: "Uggla",   cost: 4 }
+    ],
+    savannah: [
+        { key: "lion",   emoji: "🦁", label: "Lejon",   cost: 3 },
+        { key: "zebra",  emoji: "🦓", label: "Zebra",   cost: 3 },
+        { key: "elephant", emoji: "🐘", label: "Elefant", cost: 4 },
+        { key: "giraffe", emoji: "🦒", label: "Giraff", cost: 4 }
+    ],
+    ocean: [
+        { key: "fish",   emoji: "🐟", label: "Fisk",    cost: 2 },
+        { key: "dolphin",emoji: "🐬", label: "Delfin",  cost: 3 },
+        { key: "whale",  emoji: "🐳", label: "Val",     cost: 4 },
+        { key: "octopus",emoji: "🐙", label: "Bläckfisk", cost: 4 }
+    ],
+    ice: [
+        { key: "penguin",emoji: "🐧", label: "Pingvin",   cost: 2 },
+        { key: "polarBear", emoji: "🐻‍❄️", label: "Isbjörn", cost: 4 },
+        { key: "seal",   emoji: "🦭", label: "Säl",      cost: 3 }
+    ],
+    fantasy: [
+        { key: "dragon", emoji: "🐉", label: "Drake",   cost: 4 },
+        { key: "fairy",  emoji: "🧚", label: "Fé",      cost: 3 },
+        { key: "unicorn",emoji: "🦄", label: "Enhörning", cost: 5 },
+        { key: "wizard", emoji: "🧙‍♂️", label: "Trollkarl", cost: 3 }
+    ]
+};
+
+const ZONE_DECOR = {
+    forest:  "🌲 🌳 🌲 🍄 🌳 🦌",
+    savannah:"🌵 🌾 🌞 🌾 🦁",
+    ocean:   "🌊 🐠 🐳 🏝️ 🐙",
+    ice:     "❄️ ⛄ 🐧 ❄️ 🏔️",
+    fantasy: "🧙‍♂️ ✨ 🐉 🏰 🪄"
+};
+
+// ========= HJÄLPFUNKTIONER =========
+
+function roundTo(value, decimals) {
+    const factor = Math.pow(10, decimals);
+    return Math.round(value * factor) / factor;
+}
+function normZero(value) {
+    return Math.abs(value) < 1e-10 ? 0 : value;
+}
+function updateScoreBox() {
+    document.getElementById("scoreValue").innerText = score.toString();
+}
+function updateZooTitle() {
+    const title = document.getElementById("zooTitle");
+    if (zooName && zooName.trim() !== "") {
+        title.innerText = zooName.trim() + " 🐾";
+    } else {
+        title.innerText = "Ditt stjärn-zoo 🐾";
+    }
+}
+
+function saveState() {
+    try {
+        localStorage.setItem("eqTrainerScore", JSON.stringify(score));
+        localStorage.setItem("eqTrainerZoo", JSON.stringify(zooAnimalsByZone));
+        localStorage.setItem("eqTrainerZooName", zooName);
+    } catch (e) {
+        console.log("Kunde inte spara state:", e);
+    }
+}
+function loadState() {
+    try {
+        const savedScore = localStorage.getItem("eqTrainerScore");
+        const savedZoo = localStorage.getItem("eqTrainerZoo");
+        const savedName = localStorage.getItem("eqTrainerZooName");
+
+        if (savedScore !== null) {
+            score = JSON.parse(savedScore);
+        }
+        if (savedName !== null) {
+            zooName = savedName;
+        }
+
+        if (savedZoo !== null) {
+            const parsed = JSON.parse(savedZoo);
+            if (Array.isArray(parsed)) {
+                zooAnimalsByZone = {
+                    forest:  parsed,
+                    savannah:[],
+                    ocean:   [],
+                    ice:     [],
+                    fantasy: []
+                };
+            } else if (parsed && typeof parsed === "object") {
+                zooAnimalsByZone = {
+                    forest:   parsed.forest   || [],
+                    savannah: parsed.savannah || [],
+                    ocean:    parsed.ocean    || [],
+                    ice:      parsed.ice      || [],
+                    fantasy:  parsed.fantasy  || []
+                };
+            }
+        }
+    } catch (e) {
+        console.log("Kunde inte läsa state:", e);
+    }
+    updateScoreBox();
+    updateZooTitle();
+    renderZoo();
+    const nameInput = document.getElementById("zooNameInput");
+    if (nameInput) {
+        nameInput.value = zooName;
+    }
+}
+
+// ========= EKVATION =========
+
+function parseLinear(expr) {
+    let clean = expr.replace(/X/g, "x");
+    clean = clean.replace(/\s+/g, "");
+    clean = clean.replace(/(\d)x/g, "$1*x");
+
+    function evalFor(xVal) {
+        const withX = clean.replace(/x/g, "(" + xVal + ")");
+        return Function("return " + withX)();
+    }
+
+    let b = evalFor(0);
+    let a = evalFor(1) - b;
+
+    return { a: normZero(a), b: normZero(b) };
+}
+
+function renderSide(side) {
+    let a = normZero(roundTo(side.a, 6));
+    let b = normZero(roundTo(side.b, 2));
+
+    if (a === 0) return b.toString();
+
+    let fracForm = null;
+    const aAbs = Math.abs(a);
+    for (let n = 2; n <= 10; n++) {
+        if (Math.abs(aAbs - 1/n) < 1e-6) {
+            fracForm = { n, sign: Math.sign(a) };
+            break;
+        }
+    }
+
+    let xPart = "";
+    if (fracForm) {
+        xPart = (fracForm.sign > 0 ? "" : "-") + "x/" + fracForm.n;
+    } else {
+        if (a === 1) xPart = "x";
+        else if (a === -1) xPart = "-x";
+        else xPart = a + "x";
+    }
+
+    if (b === 0) return xPart;
+
+    const sign = b > 0 ? " + " : " - ";
+    return xPart + sign + Math.abs(b);
+}
+
+function addStep(text, highlightOp = null) {
+    const container = document.getElementById("steps");
+    const div = document.createElement("div");
+    div.className = "step";
+
+    const [L, R] = text.split(" = ");
+
+    let leftHTML = L;
+    let rightHTML = R;
+
+    if (highlightOp) {
+        const opSpan = `<span class="op-green">${highlightOp}</span>`;
+        leftHTML = leftHTML.replace(highlightOp, opSpan);
+        rightHTML = rightHTML.replace(highlightOp, opSpan);
+    }
+
+    const spanLeft = document.createElement("span");
+    spanLeft.className = "left";
+    spanLeft.innerHTML = leftHTML;
+
+    const spanEq = document.createElement("span");
+    spanEq.className = "eq";
+    spanEq.innerText = "=";
+
+    const spanRight = document.createElement("span");
+    spanRight.className = "right";
+    spanRight.innerHTML = rightHTML;
+
+    div.appendChild(spanLeft);
+    div.appendChild(spanEq);
+    div.appendChild(spanRight);
+
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function isSolved(left, right) {
+    const aL = normZero(left.a), bL = normZero(left.b);
+    const aR = normZero(right.a), bR = normZero(right.b);
+
+    const leftIsX   = (aL === 1 && bL === 0);
+    const rightIsX  = (aR === 1 && bR === 0);
+    const leftIsNum = (aL === 0);
+    const rightIsNum= (aR === 0);
+
+    return (leftIsX && rightIsNum) || (rightIsX && leftIsNum);
+}
+
+function updateDisplay() {
+    const eqText = renderSide(leftSideObj) + " = " + renderSide(rightSideObj);
+    addStep(eqText);
+
+    if (isSolved(leftSideObj, rightSideObj)) {
+        score += 1;
+        updateScoreBox();
+        saveState();
+        document.getElementById("suggestion").innerText =
+            "🎉 Grattis! Du har löst ekvationen!";
+        document.getElementById("opInput").disabled = true;
+        document.getElementById("opButton").disabled = true;
+        return;
+    }
+
+    document.getElementById("suggestion").innerText =
+        "Fundera på vad du vill göra för att komma närmare att x blir ensamt.";
+}
+
+// ========= SLUMPEKVATIONER =========
+
+function startRandom() {
+    const useFraction = Math.random() < 0.4;
+
+    if (useFraction) {
+        const n = getRandomInt(2, 6);
+        const k = getRandomInt(1, 10);
+        const xVal = k * n;
+        const b = getRandomInt(-5, 5);
+        const c = k + b;
+
+        leftSideObj = { a: 1/n, b };
+        rightSideObj = { a: 0, b: c };
+
+        const eqText = renderSide(leftSideObj) + " = " + renderSide(rightSideObj);
+        resetUI(eqText);
+    } else {
+        const a = getRandomInt(2, 9);
+        const xVal = getRandomInt(1, 10);
+        const b = getRandomInt(-10, 10);
+        const c = a * xVal + b;
+
+        leftSideObj = { a, b };
+        rightSideObj = { a: 0, b: c };
+
+        const eqText = renderSide(leftSideObj) + " = " + renderSide(rightSideObj);
+        resetUI(eqText);
+    }
+
+    updateDisplay();
+}
+
+function startRandomBoth() {
+    const xVal = getRandomInt(1, 10);
+    const aL = getRandomInt(1, 9);
+    const aR = getRandomInt(1, 9);
+    const bL = getRandomInt(-10, 10);
+    const bR = aL * xVal + bL - aR * xVal;
+
+    leftSideObj = { a: aL, b: bL };
+    rightSideObj = { a: aR, b: bR };
+
+    const eqText = renderSide(leftSideObj) + " = " + renderSide(rightSideObj);
+    resetUI(eqText);
+    updateDisplay();
+}
+
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function resetUI(eqText) {
+    document.getElementById("steps").innerHTML = "";
+    document.getElementById("eqInput").value = eqText;
+    document.getElementById("opInput").disabled = false;
+    document.getElementById("opButton").disabled = false;
+    document.getElementById("opInput").value = "";
+    document.getElementById("suggestion").innerText =
+        "Fundera på vad du vill göra för att komma närmare att x blir ensamt.";
+}
+
+// ========= INPUT & OPERATIONER =========
+
+function startFromInput() {
+    const raw = document.getElementById("eqInput").value;
+    if (!raw.includes("=")) {
+        alert("Ekvationen måste innehålla '='.");
+        return;
+    }
+
+    const [Lraw, Rraw] = raw.split("=");
+
+    try {
+        leftSideObj = parseLinear(Lraw);
+        rightSideObj = parseLinear(Rraw);
+    } catch {
+        alert("Kunde inte tolka ekvationen.");
+        return;
+    }
+
+    const eqText = renderSide(leftSideObj) + " = " + renderSide(rightSideObj);
+    resetUI(eqText);
+    updateDisplay();
+}
+
+function applyOp() {
+    const input = document.getElementById("opInput");
+    const rawOp = input.value.trim();
+
+    if (!rawOp) {
+        alert("Skriv t.ex. +7, -3, *2 eller +2x.");
+        return;
+    }
+
+    const symbol = rawOp[0];
+    if (!["+","-","*","/"].includes(symbol)) {
+        alert("Operationen måste börja med +, -, * eller /.");
+        return;
+    }
+
+    let valueStr = rawOp.substring(1).trim();
+    if (valueStr === "") {
+        alert("Du måste skriva något efter tecknet.");
+        return;
+    }
+
+    const lower = valueStr.toLowerCase();
+
+    if ((symbol === "*" || symbol === "/") && lower.includes("x")) {
+        alert("Du kan inte multiplicera eller dividera med x.");
+        return;
+    }
+
+    // +kx / -kx
+    if ((symbol === "+" || symbol === "-") && lower.includes("x")) {
+        let cleaned = lower.replace("*","").replace("x","").replace(",",".").trim();
+        let coeff;
+
+        if (cleaned === "" || cleaned === "+") coeff = 1;
+        else if (cleaned === "-") coeff = 1;
+        else coeff = parseFloat(cleaned);
+
+        if (isNaN(coeff)) {
+            alert("Kunde inte tolka koefficienten framför x.");
+            return;
+        }
+
+        const opText = symbol + " " + valueStr;
+        const beforeLeft = renderSide(leftSideObj);
+        const beforeRight = renderSide(rightSideObj);
+
+        addStep(`${beforeLeft} ${opText} = ${beforeRight} ${opText}`, opText);
+
+        const delta = (symbol === "+") ? coeff : -coeff;
+        leftSideObj.a = normZero(leftSideObj.a + delta);
+        rightSideObj.a = normZero(rightSideObj.a + delta);
+
+        input.value = "";
+        updateDisplay();
+        return;
+    }
+
+    // +tal, -tal, *tal, /tal
+    valueStr = valueStr.replace(",",".");
+    const value = parseFloat(valueStr);
+
+    if (isNaN(value)) {
+        alert("Kunde inte tolka talet.");
+        return;
+    }
+    if (symbol === "/" && value === 0) {
+        alert("Du kan inte dela med 0.");
+        return;
+    }
+
+    const opText = symbol + " " + value;
+    const beforeLeft = renderSide(leftSideObj);
+    const beforeRight = renderSide(rightSideObj);
+
+    addStep(`${beforeLeft} ${opText} = ${beforeRight} ${opText}`, opText);
+
+    leftSideObj = doNumeric(leftSideObj, symbol, value);
+    rightSideObj = doNumeric(rightSideObj, symbol, value);
+
+    input.value = "";
+    updateDisplay();
+}
+
+function doNumeric(side, symbol, value) {
+    let a = side.a, b = side.b;
+    if (symbol === "+")      b += value;
+    else if (symbol === "-") b -= value;
+    else if (symbol === "*") { a *= value; b *= value; }
+    else if (symbol === "/") { a /= value; b /= value; }
+    return { a: normZero(a), b: normZero(b) };
+}
+
+document.getElementById("opInput").addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.target.disabled) {
+        e.preventDefault();
+        applyOp();
+    }
+});
+
+// ========= ZOO-FUNKTIONER =========
+
+function renderZoo() {
+    const zooDiv = document.getElementById("zooArea");
+    zooDiv.innerHTML = "";
+
+    let total = 0;
+    for (const zone of ["forest", "savannah", "ocean", "ice", "fantasy"]) {
+        total += zooAnimalsByZone[zone].length;
+    }
+
+    if (total === 0) {
+        zooDiv.classList.add("empty");
+        zooDiv.textContent =
+            "Inga djur ännu. Lös ekvationer, samla stjärnor och köp dina första djur!";
+        return;
+    }
+
+    zooDiv.classList.remove("empty");
+
+    const zonesContainer = document.createElement("div");
+    zonesContainer.id = "zooZones";
+
+    const zoneNames = {
+        forest: "Skog",
+        savannah: "Savann",
+        ocean: "Hav",
+        ice: "Is",
+        fantasy: "Fantasi"
+    };
+
+    for (const zoneKey of ["forest", "savannah", "ocean", "ice", "fantasy"]) {
+        const animals = zooAnimalsByZone[zoneKey];
+        if (!animals || animals.length === 0) continue;
+
+        const box = document.createElement("div");
+        box.className = "zoneBox zone-" + zoneKey;
+
+        const title = document.createElement("div");
+        title.className = "zoneTitle";
+        title.textContent = zoneNames[zoneKey];
+
+        const decor = document.createElement("div");
+        decor.className = "zoneDecor";
+        const decorString = ZONE_DECOR[zoneKey] || "";
+        const parts = decorString.split(" ").filter(s => s.trim() !== "");
+        parts.forEach(em => {
+            const span = document.createElement("span");
+            span.className = "decorEmoji";
+            span.textContent = em;
+            decor.appendChild(span);
+        });
+
+        const animalWrap = document.createElement("div");
+        animalWrap.className = "zoneAnimals";
+
+        animals.forEach(emoji => {
+            const tile = document.createElement("div");
+            tile.className = "zoneAnimal";
+            tile.textContent = emoji;
+            animalWrap.appendChild(tile);
+        });
+
+        box.appendChild(title);
+        box.appendChild(decor);
+        box.appendChild(animalWrap);
+        zonesContainer.appendChild(box);
+    }
+
+    zooDiv.appendChild(zonesContainer);
+}
+
+// affären – generera knappar utifrån vald zon
+function renderShopButtons() {
+    const zoneSelect = document.getElementById("zoneSelect");
+    const zoneKey = zoneSelect ? zoneSelect.value : "forest";
+    const container = document.getElementById("shopButtons");
+    container.innerHTML = "";
+
+    const items = SHOP_BY_ZONE[zoneKey] || [];
+    items.forEach(item => {
+        const btn = document.createElement("button");
+        btn.textContent = `${item.emoji} ${item.label} (${item.cost}⭐)`;
+        btn.addEventListener("click", () => buyAnimal(item));
+        container.appendChild(btn);
+    });
+}
+
+function buyAnimal(item) {
+    if (!item) return;
+    if (score < item.cost) {
+        alert("Du har inte tillräckligt många stjärnor för det här djuret.");
+        return;
+    }
+
+    const zoneSelect = document.getElementById("zoneSelect");
+    const zoneKey = zoneSelect ? zoneSelect.value : "forest";
+
+    if (!zooAnimalsByZone[zoneKey]) {
+        zooAnimalsByZone[zoneKey] = [];
+    }
+
+    score -= item.cost;
+    zooAnimalsByZone[zoneKey].push(item.emoji);
+    updateScoreBox();
+    renderZoo();
+    saveState();
+}
+
+function saveZooName() {
+    const input = document.getElementById("zooNameInput");
+    if (!input) return;
+    zooName = input.value || "";
+    updateZooTitle();
+    saveState();
+}
+
+// ========= INIT =========
+
+loadState();
+renderShopButtons();
+document.getElementById("zoneSelect").addEventListener("change", renderShopButtons);
+
+</script>
+
+</body>
+</html>
