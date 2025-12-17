@@ -51,13 +51,22 @@
     button:disabled { opacity: .55; cursor: not-allowed; }
 
     .topRow{
-        display:flex;
-        gap:12px;
-        flex-wrap:wrap;
-        align-items:center;
-        justify-content:space-between;
-        margin-bottom:10px;
-    }
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+
+    /* plats för ⭐-pillret uppe till höger */
+    padding-right: 170px;
+}
+
+    @media (max-width: 520px){
+  #scoreBox{ position: static; margin-bottom:10px; }
+  .topRow{ padding-right:0; }
+}
+
     .backLink{
         text-decoration:none;
         color:#1b5e20;
