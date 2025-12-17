@@ -12,7 +12,7 @@
     padding:24px 14px 40px;
   }
   #app{
-    max-width:1000px;
+    max-width:1100px;
     margin:0 auto;
     background:#fff;
     border-radius:14px;
@@ -22,6 +22,7 @@
     position:relative;
   }
   h1{margin:0 0 6px; color:#2e7d32;}
+  h2{margin:0 0 8px;}
   p{margin:8px 0 10px; line-height:1.35;}
   .muted{color:#566; font-size:14px;}
   .row{display:flex; gap:14px; flex-wrap:wrap;}
@@ -41,9 +42,10 @@
     border-radius:999px;
     padding:7px 12px;
     display:flex; align-items:center; gap:8px;
-    font-weight:700; color:#f57f17;
+    font-weight:800; color:#f57f17;
   }
   #starPill span{font-size:18px;}
+
   .btn{
     border:none;
     background:#4CAF50;
@@ -51,7 +53,7 @@
     padding:9px 12px;
     border-radius:10px;
     cursor:pointer;
-    font-weight:600;
+    font-weight:700;
   }
   .btn:hover{background:#43a047;}
   .btn.secondary{background:#546e7a;}
@@ -59,6 +61,7 @@
   .btn.danger{background:#c62828;}
   .btn.danger:hover{background:#b71c1c;}
   .btn:disabled{opacity:.5; cursor:not-allowed;}
+
   input, select{
     padding:9px 10px;
     border-radius:10px;
@@ -93,66 +96,96 @@
   /* Zoo zones grid */
   #zooGrid{
     display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns:repeat(auto-fit, minmax(270px, 1fr));
     gap:12px;
-    margin-top:8px;
+    margin-top:10px;
   }
   .zone{
     border-radius:12px;
     border:2px solid rgba(0,0,0,0.08);
     overflow:hidden;
     position:relative;
-    min-height:210px;
+    min-height:260px;
   }
   .zoneHeader{
     display:flex;
     align-items:center;
     justify-content:space-between;
     padding:10px 10px 8px;
-    font-weight:800;
+    font-weight:900;
     font-size:14px;
   }
   .zoneBody{padding:10px;}
-  .zoneDecor{
-    display:flex;
-    flex-wrap:wrap;
-    gap:6px;
-    background:rgba(255,255,255,0.55);
-    border:1px solid rgba(0,0,0,0.06);
-    border-radius:10px;
-    padding:8px;
-    min-height:42px;
-  }
-  .zonePathLabel{
+  .zoneSub{
     font-size:12px;
     color:#345;
-    margin:10px 0 6px;
-    font-weight:700;
+    margin:0 0 8px;
+    font-weight:800;
   }
-  .zoneAnimals{
+
+  /* Mini map (6x6) */
+  .mapWrap{
+    background:rgba(255,255,255,0.55);
+    border:1px solid rgba(0,0,0,0.06);
+    border-radius:12px;
+    padding:10px;
+  }
+  .miniMap{
+    display:grid;
+    grid-template-columns:repeat(6, 1fr);
+    gap:6px;
+  }
+  .cell{
+    width:100%;
+    aspect-ratio:1/1;
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,0.68);
+    border:1px solid rgba(255,255,255,0.88);
+    font-size:20px;
+    user-select:none;
+  }
+  .cell.empty{
+    opacity:0.22;
+    font-size:16px;
+  }
+  .cell.path{
+    opacity:0.65;
+    font-size:18px;
+  }
+
+  /* Animals row */
+  .animalsWrap{
+    margin-top:10px;
     display:flex;
     flex-wrap:wrap;
     gap:8px;
     background:rgba(255,255,255,0.55);
     border:1px solid rgba(0,0,0,0.06);
-    border-radius:10px;
-    padding:8px;
-    min-height:54px;
+    border-radius:12px;
+    padding:10px;
+    min-height:52px;
   }
-  .tile{
-    width:40px; height:40px;
+  .animalTile{
+    width:44px; height:44px;
     display:flex; align-items:center; justify-content:center;
-    border-radius:10px;
+    border-radius:12px;
     font-size:24px;
-    background:rgba(255,255,255,0.62);
-    border:1px solid rgba(255,255,255,0.82);
+    background:rgba(255,255,255,0.68);
+    border:1px solid rgba(255,255,255,0.88);
   }
+
+  /* Rarity glow */
+  .rar-common{ box-shadow:none; }
+  .rar-uncommon{ box-shadow:0 0 0 2px rgba(30,200,80,0.22), 0 0 12px rgba(30,200,80,0.25); }
+  .rar-rare{ box-shadow:0 0 0 2px rgba(40,120,240,0.22), 0 0 14px rgba(40,120,240,0.28); }
+  .rar-epic{ box-shadow:0 0 0 2px rgba(160,70,240,0.26), 0 0 16px rgba(160,70,240,0.33); }
 
   /* Locked overlay */
   .lockedOverlay{
     position:absolute;
     inset:0;
-    background:rgba(30,30,30,0.72);
+    background:rgba(30,30,30,0.74);
     color:#fff;
     display:flex;
     align-items:center;
@@ -161,7 +194,7 @@
     text-align:center;
   }
   .lockedOverlay .box{
-    max-width:240px;
+    max-width:260px;
     background:rgba(0,0,0,0.35);
     border:1px solid rgba(255,255,255,0.25);
     border-radius:12px;
@@ -169,8 +202,11 @@
   }
   .lockedOverlay h4{margin:0 0 8px;}
   .lockedOverlay p{margin:0 0 10px; font-size:14px;}
+  .reqLine{font-size:14px; margin:6px 0;}
+  .reqOk{color:#a5ffb6;}
+  .reqNo{color:#ffd1d1;}
 
-  /* Zone color themes */
+  /* Zone themes */
   .forest{background:#eaf6df;}
   .savannah{background:#fff6d6;}
   .ocean{background:#dbeeff;}
@@ -180,12 +216,10 @@
   /* Shop */
   #shop{
     display:grid;
-    grid-template-columns:1.1fr 0.9fr;
+    grid-template-columns:1.2fr 0.8fr;
     gap:12px;
   }
-  @media (max-width: 860px){
-    #shop{grid-template-columns:1fr;}
-  }
+  @media (max-width: 900px){ #shop{grid-template-columns:1fr;} }
   .shopHeader{
     display:flex; align-items:center; gap:8px;
     font-weight:900; color:#e65100;
@@ -198,9 +232,7 @@
     margin:8px 0 10px;
   }
   .shopControls > div{display:flex; flex-direction:column; gap:6px;}
-  .shopItems{
-    display:flex; flex-wrap:wrap; gap:8px;
-  }
+  .shopItems{ display:flex; flex-wrap:wrap; gap:8px; }
   .shopItemBtn{
     border:none;
     border-radius:10px;
@@ -208,7 +240,7 @@
     cursor:pointer;
     background:#ffe0b2;
     color:#5d4037;
-    font-weight:800;
+    font-weight:900;
   }
   .shopItemBtn:hover{background:#ffcc80;}
   .shopNote{
@@ -218,9 +250,16 @@
   }
   .toast{
     margin-top:8px;
-    font-weight:800;
+    font-weight:900;
     color:#2e7d32;
   }
+
+  .tiny{
+    font-size:12px;
+    color:#556;
+    margin-top:10px;
+  }
+  code{background:#f5f5f5; padding:1px 6px; border-radius:8px;}
 </style>
 </head>
 <body>
@@ -230,11 +269,12 @@
   <h1>🦁 Mattezoo</h1>
   <p>
     Träna matte, samla stjärnor ⭐ och bygg ditt zoo.
-    Lås upp nya områden för <b>10 stjärnor</b> styck!
+    <br>
+    Nya områden låses upp <b>i ordning</b> och kräver både <b>10 ⭐</b> och att du klarat ett uppdrag.
   </p>
 
   <div class="row">
-    <div class="card" style="flex:1; min-width:260px;">
+    <div class="card" style="flex:1; min-width:280px;">
       <b>Välj träning</b>
       <div id="trainGrid">
         <a class="gameBtn" href="multiplikation.html">
@@ -250,10 +290,14 @@
           <p>Kommer snart…</p>
         </a>
       </div>
-      <p class="muted">Tips: Om en elev vill börja om: använd “Nollställ” längst ner.</p>
+
+      <div class="tiny">
+        <b>Uppdrag-räknare:</b>
+        Multiplikation: <span id="progMult">0</span> | Ekvationer: <span id="progEq">0</span>
+      </div>
     </div>
 
-    <div class="card" style="flex:1; min-width:260px;">
+    <div class="card" style="flex:1; min-width:280px;">
       <b>Döp ditt zoo</b>
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;">
         <input id="zooNameInput" placeholder="t.ex. Matteparken" style="flex:1; min-width:220px;">
@@ -263,18 +307,22 @@
         <span class="muted">Just nu heter ditt zoo: </span>
         <b id="zooNameText">Mattezoo</b>
       </div>
+      <div class="tiny">
+        Tips: När du kommer tillbaka från ett spel kan du klicka “Synka” i affären om du vill uppdatera direkt.
+      </div>
     </div>
   </div>
 
   <div class="card" style="margin-top:14px;">
     <h2 style="margin:0 0 6px;">🐾 Ditt zoo</h2>
-    <div class="muted">Börja i skogen. Lås upp nästa område när du har 10 ⭐ att spendera.</div>
-
+    <div class="muted">
+      Varje område har en liten karta. Dekorationer hamnar i rutor (som träd längs stigar).
+    </div>
     <div id="zooGrid"></div>
   </div>
 
   <div class="card" style="margin-top:14px;">
-    <div class="shopHeader"><span>🏪</span> Djuraffären & Blind Bags</div>
+    <div class="shopHeader"><span>🏪</span> Djuraffären, dekorationer & blind bags</div>
     <div class="muted">Välj område och köp djur, dekorationer eller en blind bag med överraskning 🎁</div>
 
     <div id="shop">
@@ -298,19 +346,28 @@
         <div class="shopItems" id="shopItems"></div>
         <div class="toast" id="toast"></div>
         <div class="shopNote" id="shopNote"></div>
+
+        <div class="tiny">
+          <b>Raritet:</b> Common (ingen glow), Uncommon (grön), Rare (blå), Epic (lila).
+        </div>
       </div>
 
       <div class="card" style="background:#fafafa;">
-        <b>Regler (enkla)</b>
+        <b>Regler</b>
         <ul style="margin:8px 0 0; padding-left:18px; line-height:1.35;">
-          <li>Nya områden kostar <b>10 ⭐</b>.</li>
-          <li>Blind bag ger ett slumpdjur från valt område.</li>
-          <li>Dekorationer hamnar “längs stigen” i området.</li>
+          <li>Upplåsning sker i ordning och kräver <b>10 ⭐</b> + ett uppdrag.</li>
+          <li>Blind bag ger ett slumpdjur med olika raritet.</li>
+          <li>Dekorationer placeras automatiskt på kartan.</li>
         </ul>
 
         <div style="margin-top:12px;">
-          <button class="btn secondary" id="refreshBtn">Uppdatera sida (läs in sparat)</button>
+          <button class="btn secondary" id="syncBtn">Synka (läs in sparat)</button>
           <button class="btn danger" id="resetBtn" style="margin-top:8px;">Nollställ allt</button>
+        </div>
+
+        <div class="tiny" style="margin-top:10px;">
+          <b>Lärarnotis:</b> Spelsidorna bör öka räknare i
+          <code>mathZooProgress</code> (se längst ner i filen).
         </div>
       </div>
     </div>
@@ -321,14 +378,15 @@
 /* =========================
    STORAGE NYCKLAR
 ========================= */
-const KEY_STARS = "mathZooStars";
-const KEY_NAME = "mathZooName";
-const KEY_UNLOCK = "mathZooUnlockedZones";
-const KEY_ANIMALS = "mathZooAnimalsByZone";
-const KEY_DECOR = "mathZooDecorByZone";
+const KEY_STARS   = "mathZooStars";
+const KEY_NAME    = "mathZooName";
+const KEY_UNLOCK  = "mathZooUnlockedZones";
+const KEY_ANIMALS = "mathZooAnimalsByZoneV2"; // V2: djur är objekt med raritet
+const KEY_DECOR   = "mathZooDecorGridByZone"; // grid 6x6 (36 rutor)
+const KEY_PROG    = "mathZooProgress";        // { mult: n, eq: n }
 
 /* =========================
-   DATA
+   DATA: ZONER
 ========================= */
 const ZONES = [
   { key:"forest",  name:"Skog",    icon:"🌲", cls:"forest"  },
@@ -338,24 +396,75 @@ const ZONES = [
   { key:"fantasy", name:"Fantasi", icon:"🐉", cls:"fantasy" }
 ];
 
-// Djur i affären (per zon)
-const ANIMALS_BY_ZONE = {
-  forest:   ["🐭","🐿️","🦉","🦌","🦊","🐻"],
-  savannah: ["🦁","🦓","🐘","🦒","🦛","🐆"],
-  ocean:    ["🐟","🐬","🐙","🐳","🦀","🦈"],
-  ice:      ["🐧","🦭","🐻‍❄️","🦊","🦉"],
-  fantasy:  ["🐉","🧚","🦄","🧙‍♂️","🧝","🐺"]
+/* =========================
+   UPPDRAG FÖR UPPLÅSNING
+   (i ordning: savannah -> ocean -> ice -> fantasy)
+========================= */
+const UNLOCK_REQ = {
+  savannah: { stars:10, mult:5, eq:0,  label:"Klara 5 multiplikationer" },
+  ocean:    { stars:10, mult:0, eq:5,  label:"Klara 5 ekvationer" },
+  ice:      { stars:10, mult:6, eq:6,  label:"Klara 6 multiplikationer + 6 ekvationer" },
+  fantasy:  { stars:10, mult:10,eq:10, label:"Klara 10 multiplikationer + 10 ekvationer" }
 };
 
-// Prislista
+/* =========================
+   PRISER
+========================= */
 const PRICES = {
-  animal: 3,       // “köp ett djur”
-  blind: 4,        // blind bag
-  decor: 2,        // dekor
+  animal: 3,
+  decor: 2,
+  blind: 4,
   unlock: 10
 };
 
-// Dekorationer per zon (vi “placerar” dem i dekor-raden)
+/* =========================
+   DJURPOOLER + RARITET
+========================= */
+// Common/Uncommon/Rare/Epic per zon (enkelt att utöka)
+const ANIMALS_POOL = {
+  forest: {
+    common:   ["🐭","🐿️","🦉","🦌","🦊"],
+    uncommon: ["🐻","🦔"],
+    rare:     ["🦝","🦡"],
+    epic:     ["🦄"]
+  },
+  savannah:{
+    common:   ["🦁","🦓","🐘","🦒"],
+    uncommon: ["🐆","🦛"],
+    rare:     ["🦏"],
+    epic:     ["🐲"]
+  },
+  ocean:{
+    common:   ["🐟","🐬","🐙","🦀"],
+    uncommon: ["🦈","🐢"],
+    rare:     ["🐳"],
+    epic:     ["🧜‍♀️"]
+  },
+  ice:{
+    common:   ["🐧","🦭"],
+    uncommon: ["🦊","🦉"],
+    rare:     ["🐻‍❄️"],
+    epic:     ["🦄"]
+  },
+  fantasy:{
+    common:   ["🧚","🧙‍♂️","🧝","🐺"],
+    uncommon: ["🦄"],
+    rare:     ["🐉"],
+    epic:     ["🔥🐉"] // vi visar som text (ok i emoji-rutor)
+  }
+};
+
+// Raritetschans (summa = 1.0)
+const RARITY_CHANCE = [
+  { r:"common",   p:0.70 },
+  { r:"uncommon", p:0.20 },
+  { r:"rare",     p:0.09 },
+  { r:"epic",     p:0.01 }
+];
+
+/* =========================
+   DEKORATIONER
+========================= */
 const DECOR_BY_ZONE = {
   forest:   ["🌲","🌳","🍄","🌿","🌼","🪵"],
   savannah: ["🌵","🌾","🌻","🪨","🌞","🏜️"],
@@ -364,30 +473,46 @@ const DECOR_BY_ZONE = {
   fantasy:  ["✨","🏰","🪄","🔮","🌙","🕯️"]
 };
 
-// “Stig”-dekorationer kan vi göra lite mer “spridda” genom att blanda in tomma slots
-function sprinkleDecor(decorArr, targetLen=10){
-  const out = decorArr.slice(0);
-  while(out.length < targetLen) out.push("·"); // små “tomrutor”
-  // shuffle lätt
-  for(let i=out.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [out[i],out[j]]=[out[j],out[i]];
-  }
-  return out;
-}
+/* =========================
+   MINI-MAP: PATH-ROUTE
+   Vi markerar stigen med "🟫" i vissa rutor.
+   (Samma stig i alla zoner för enkelhet.)
+========================= */
+const PATH_INDEXES = new Set([
+  // enkel "S-form" i 6x6 (index = row*6 + col)
+  0,1,2, 8,14,20, 21,22,23, 17,11,5
+]);
 
 /* =========================
    STATE
 ========================= */
 let stars = 0;
 let zooName = "Mattezoo";
+
+// upplåsning (börjar med skog)
 let unlocked = { forest:true, savannah:false, ocean:false, ice:false, fantasy:false };
+
+// djur per zon: [{emoji, rarity}]
 let animalsByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[] };
-let decorByZone   = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[] };
+
+// dekor-grid per zon: array(36) med null eller emoji
+let decorGridByZone = {
+  forest:   Array(36).fill(null),
+  savannah: Array(36).fill(null),
+  ocean:    Array(36).fill(null),
+  ice:      Array(36).fill(null),
+  fantasy:  Array(36).fill(null)
+};
+
+// progress
+let progress = { mult:0, eq:0 };
 
 /* =========================
-   HELPERS: STORAGE
+   STORAGE
 ========================= */
+function safeParse(json, fallback){
+  try{ return JSON.parse(json); }catch{ return fallback; }
+}
 function loadState(){
   stars = parseInt(localStorage.getItem(KEY_STARS) || "0", 10);
 
@@ -396,19 +521,18 @@ function loadState(){
 
   const u = localStorage.getItem(KEY_UNLOCK);
   if(u){
-    try{
-      const parsed = JSON.parse(u);
+    const parsed = safeParse(u, null);
+    if(parsed && typeof parsed === "object"){
       unlocked = { ...unlocked, ...parsed };
-    }catch{}
+    }
   } else {
-    // default: only forest unlocked
     unlocked = { forest:true, savannah:false, ocean:false, ice:false, fantasy:false };
   }
 
   const a = localStorage.getItem(KEY_ANIMALS);
   if(a){
-    try{
-      const parsed = JSON.parse(a);
+    const parsed = safeParse(a, null);
+    if(parsed && typeof parsed === "object"){
       animalsByZone = {
         forest: parsed.forest || [],
         savannah: parsed.savannah || [],
@@ -416,24 +540,27 @@ function loadState(){
         ice: parsed.ice || [],
         fantasy: parsed.fantasy || []
       };
-    }catch{}
+    }
   }
 
   const d = localStorage.getItem(KEY_DECOR);
   if(d){
-    try{
-      const parsed = JSON.parse(d);
-      decorByZone = {
-        forest: parsed.forest || [],
-        savannah: parsed.savannah || [],
-        ocean: parsed.ocean || [],
-        ice: parsed.ice || [],
-        fantasy: parsed.fantasy || []
-      };
-    }catch{}
+    const parsed = safeParse(d, null);
+    if(parsed && typeof parsed === "object"){
+      for(const z of ZONES){
+        const arr = Array.isArray(parsed[z.key]) ? parsed[z.key] : Array(36).fill(null);
+        decorGridByZone[z.key] = arr.length === 36 ? arr : Array(36).fill(null);
+      }
+    }
   }
 
-  // Om zon är låst ska vi inte ha djur/dekor där (valfritt). Jag låter det vara, men du kan rensa här om du vill.
+  const p = localStorage.getItem(KEY_PROG);
+  if(p){
+    const parsed = safeParse(p, null);
+    if(parsed && typeof parsed === "object"){
+      progress = { mult: parsed.mult || 0, eq: parsed.eq || 0 };
+    }
+  }
 }
 
 function saveState(){
@@ -441,27 +568,66 @@ function saveState(){
   localStorage.setItem(KEY_NAME, zooName);
   localStorage.setItem(KEY_UNLOCK, JSON.stringify(unlocked));
   localStorage.setItem(KEY_ANIMALS, JSON.stringify(animalsByZone));
-  localStorage.setItem(KEY_DECOR, JSON.stringify(decorByZone));
+  localStorage.setItem(KEY_DECOR, JSON.stringify(decorGridByZone));
+  localStorage.setItem(KEY_PROG, JSON.stringify(progress));
 }
 
 /* =========================
-   UI: RENDER
+   UI HELPERS
 ========================= */
 function setToast(msg, good=true){
   const t = document.getElementById("toast");
   t.textContent = msg || "";
   t.style.color = good ? "#2e7d32" : "#b71c1c";
 }
-
 function updateStarsUI(){
   document.getElementById("starsText").textContent = String(stars);
 }
-
 function updateNameUI(){
   document.getElementById("zooNameText").textContent = zooName || "Mattezoo";
   document.getElementById("zooNameInput").value = zooName || "";
 }
+function updateProgressUI(){
+  document.getElementById("progMult").textContent = String(progress.mult || 0);
+  document.getElementById("progEq").textContent = String(progress.eq || 0);
+}
 
+/* =========================
+   UNLOCK LOGIK
+========================= */
+function nextLockedZoneKey(){
+  for(const z of ZONES){
+    if(!unlocked[z.key]) return z.key;
+  }
+  return null;
+}
+function canUnlock(zoneKey){
+  const req = UNLOCK_REQ[zoneKey];
+  if(!req) return false;
+  const okStars = stars >= req.stars;
+  const okMult  = (progress.mult || 0) >= (req.mult || 0);
+  const okEq    = (progress.eq || 0) >= (req.eq || 0);
+  return okStars && okMult && okEq;
+}
+function unlockZone(zoneKey){
+  if(unlocked[zoneKey]) return;
+  if(!canUnlock(zoneKey)){
+    setToast("Du uppfyller inte kraven ännu.", false);
+    return;
+  }
+  // dra stjärnorna
+  stars -= PRICES.unlock;
+  unlocked[zoneKey] = true;
+  saveState();
+  updateStarsUI();
+  renderZoo();
+  renderShop();
+  setToast(`🔓 Du låste upp ${ZONES.find(z=>z.key===zoneKey).name}!`);
+}
+
+/* =========================
+   ZOO RENDER
+========================= */
 function renderZoneSelect(){
   const sel = document.getElementById("zoneSelect");
   sel.innerHTML = "";
@@ -472,10 +638,45 @@ function renderZoneSelect(){
     sel.appendChild(opt);
   }
 }
+function rarityClass(r){
+  if(r === "uncommon") return "rar-uncommon";
+  if(r === "rare") return "rar-rare";
+  if(r === "epic") return "rar-epic";
+  return "rar-common";
+}
+function renderMiniMap(zoneKey){
+  const grid = document.createElement("div");
+  grid.className = "miniMap";
+
+  const arr = decorGridByZone[zoneKey] || Array(36).fill(null);
+
+  for(let i=0;i<36;i++){
+    const cell = document.createElement("div");
+    cell.className = "cell";
+
+    const isPath = PATH_INDEXES.has(i);
+    const hasDecor = !!arr[i];
+
+    if(hasDecor){
+      cell.textContent = arr[i];
+      cell.classList.remove("empty");
+      if(isPath) cell.classList.add("path");
+    } else if(isPath){
+      cell.textContent = "🟫";
+      cell.classList.add("path");
+    } else {
+      cell.textContent = "·";
+      cell.classList.add("empty");
+    }
+
+    grid.appendChild(cell);
+  }
+  return grid;
+}
 
 function renderZoo(){
-  const grid = document.getElementById("zooGrid");
-  grid.innerHTML = "";
+  const zooGrid = document.getElementById("zooGrid");
+  zooGrid.innerHTML = "";
 
   for(const z of ZONES){
     const zoneDiv = document.createElement("div");
@@ -488,30 +689,16 @@ function renderZoo(){
     const body = document.createElement("div");
     body.className = "zoneBody";
 
-    // Dekor-rad (stig)
-    const label = document.createElement("div");
-    label.className = "zonePathLabel";
-    label.textContent = "Stig & dekorationer";
+    const sub = document.createElement("div");
+    sub.className = "zoneSub";
+    sub.textContent = "Karta (dekorationer på rutor)";
 
-    const decor = document.createElement("div");
-    decor.className = "zoneDecor";
+    const mapWrap = document.createElement("div");
+    mapWrap.className = "mapWrap";
+    mapWrap.appendChild(renderMiniMap(z.key));
 
-    const decorTiles = unlocked[z.key]
-      ? sprinkleDecor(decorByZone[z.key].slice(-10), 10)
-      : sprinkleDecor([], 10);
-
-    decorTiles.forEach(em => {
-      const tile = document.createElement("div");
-      tile.className = "tile";
-      tile.style.fontSize = em === "·" ? "18px" : "22px";
-      tile.style.opacity = em === "·" ? "0.25" : "1";
-      tile.textContent = em;
-      decor.appendChild(tile);
-    });
-
-    // Djur
     const animalsWrap = document.createElement("div");
-    animalsWrap.className = "zoneAnimals";
+    animalsWrap.className = "animalsWrap";
 
     if(unlocked[z.key]){
       const arr = animalsByZone[z.key] || [];
@@ -521,72 +708,86 @@ function renderZoo(){
         hint.textContent = "Inga djur här ännu. Köp i affären!";
         animalsWrap.appendChild(hint);
       } else {
-        arr.forEach(em => {
+        arr.forEach(obj => {
           const tile = document.createElement("div");
-          tile.className = "tile";
-          tile.textContent = em;
+          tile.className = `animalTile ${rarityClass(obj.rarity)}`;
+          tile.title = obj.rarity ? obj.rarity.toUpperCase() : "COMMON";
+          tile.textContent = obj.emoji;
           animalsWrap.appendChild(tile);
         });
       }
     } else {
       const hint = document.createElement("div");
       hint.className = "muted";
-      hint.textContent = "Låst område. Lås upp i affären för 10 ⭐.";
+      hint.textContent = "Låst område. Lås upp när du uppfyller kraven.";
       animalsWrap.appendChild(hint);
     }
 
-    body.appendChild(label);
-    body.appendChild(decor);
-    body.appendChild(document.createElement("div")).style.height="10px";
+    body.appendChild(sub);
+    body.appendChild(mapWrap);
     body.appendChild(animalsWrap);
 
     zoneDiv.appendChild(head);
     zoneDiv.appendChild(body);
 
-    // Locked overlay
-    if(!unlocked[z.key]){
+    if(!unlocked[z.key] && z.key !== "forest"){
+      const req = UNLOCK_REQ[z.key];
       const ov = document.createElement("div");
       ov.className = "lockedOverlay";
+
       const box = document.createElement("div");
       box.className = "box";
-      box.innerHTML = `<h4>${z.name} är låst 🔒</h4>
-        <p>Kostar <b>10 ⭐</b> att låsa upp.</p>`;
+
+      const okStars = stars >= req.stars;
+      const okMult = (progress.mult||0) >= (req.mult||0);
+      const okEq = (progress.eq||0) >= (req.eq||0);
+
+      box.innerHTML = `
+        <h4>${z.name} är låst 🔒</h4>
+        <div class="reqLine ${okStars ? "reqOk" : "reqNo"}">⭐ ${req.stars} stjärnor (spendera)</div>
+        <div class="reqLine ${okMult ? "reqOk" : "reqNo"}">✖️ Multiplikation: ${req.mult}</div>
+        <div class="reqLine ${okEq ? "reqOk" : "reqNo"}">🧮 Ekvationer: ${req.eq}</div>
+        <p style="margin-top:10px;">Uppdrag: <b>${req.label}</b></p>
+      `;
       const btn = document.createElement("button");
       btn.className = "btn";
       btn.textContent = `Lås upp ${z.name} (10⭐)`;
-      btn.disabled = stars < PRICES.unlock;
+      btn.disabled = !canUnlock(z.key);
       btn.onclick = () => unlockZone(z.key);
       box.appendChild(btn);
+
       ov.appendChild(box);
       zoneDiv.appendChild(ov);
     }
 
-    grid.appendChild(zoneDiv);
+    zooGrid.appendChild(zoneDiv);
   }
 }
 
+/* =========================
+   SHOP
+========================= */
 function renderShop(){
   const mode = document.getElementById("buyMode").value;
   const zone = document.getElementById("zoneSelect").value;
   const items = document.getElementById("shopItems");
-  const note = document.getElementById("shopNote");
+  const note  = document.getElementById("shopNote");
   items.innerHTML = "";
   setToast("");
 
-  // Info-lapp
   if(mode === "animals"){
     note.innerHTML = `Pris: <b>${PRICES.animal} ⭐</b> per djur.`;
   } else if(mode === "decor"){
-    note.innerHTML = `Pris: <b>${PRICES.decor} ⭐</b> per dekoration. (Placeras längs stigen)`;
+    note.innerHTML = `Pris: <b>${PRICES.decor} ⭐</b> per dekoration (placeras på kartan).`;
   } else if(mode === "blind"){
-    note.innerHTML = `Pris: <b>${PRICES.blind} ⭐</b> per blind bag 🎁 (slumpdjur).`;
+    note.innerHTML = `Pris: <b>${PRICES.blind} ⭐</b> per blind bag 🎁 (raritet slumpas).`;
   } else {
     const next = nextLockedZoneKey();
     if(!next){
       note.innerHTML = `Alla områden är upplåsta ✅`;
     } else {
       const zn = ZONES.find(z=>z.key===next).name;
-      note.innerHTML = `Nästa låsta område: <b>${zn}</b>. Pris: <b>${PRICES.unlock} ⭐</b>.`;
+      note.innerHTML = `Nästa låsta område: <b>${zn}</b>. Kräver 10 ⭐ + uppdrag.`;
     }
   }
 
@@ -599,17 +800,33 @@ function renderShop(){
       items.appendChild(done);
       return;
     }
-    const zn = ZONES.find(z=>z.key===next);
+    if(next === "forest"){
+      // forest är alltid upplåst i vår design
+      const msg = document.createElement("div");
+      msg.className = "muted";
+      msg.textContent = "Skogen är alltid upplåst.";
+      items.appendChild(msg);
+      return;
+    }
+    const zObj = ZONES.find(z=>z.key===next);
     const btn = document.createElement("button");
     btn.className = "shopItemBtn";
-    btn.textContent = `🔓 Lås upp ${zn.icon} ${zn.name} (${PRICES.unlock}⭐)`;
-    btn.disabled = stars < PRICES.unlock;
+    btn.textContent = `🔓 Lås upp ${zObj.icon} ${zObj.name} (${PRICES.unlock}⭐)`;
+    btn.disabled = !canUnlock(next);
     btn.onclick = () => unlockZone(next);
+
+    const req = UNLOCK_REQ[next];
+    const info = document.createElement("div");
+    info.className = "muted";
+    info.style.marginTop = "8px";
+    info.textContent = `Krav: 10⭐ + ${req.label}`;
+
     items.appendChild(btn);
+    items.appendChild(info);
     return;
   }
 
-  // Om zonen är låst, låt dem inte köpa dit (tydligt)
+  // Om zonen är låst, låt dem inte köpa dit
   if(!unlocked[zone]){
     const msg = document.createElement("div");
     msg.className = "muted";
@@ -619,12 +836,14 @@ function renderShop(){
   }
 
   if(mode === "animals"){
-    (ANIMALS_BY_ZONE[zone] || []).forEach(em => {
+    // köp en specifik emoji (alltid common för enkelhet)
+    const pool = ANIMALS_POOL[zone]?.common || [];
+    pool.forEach(em => {
       const btn = document.createElement("button");
       btn.className = "shopItemBtn";
       btn.textContent = `${em} Köp (${PRICES.animal}⭐)`;
       btn.disabled = stars < PRICES.animal;
-      btn.onclick = () => buyAnimal(zone, em);
+      btn.onclick = () => buyAnimal(zone, em, "common");
       items.appendChild(btn);
     });
     return;
@@ -639,6 +858,11 @@ function renderShop(){
       btn.onclick = () => buyDecor(zone, em);
       items.appendChild(btn);
     });
+    const hint = document.createElement("div");
+    hint.className = "muted";
+    hint.style.marginTop = "8px";
+    hint.textContent = "Dekorationer placeras automatiskt på en tom ruta (inte på stigen).";
+    items.appendChild(hint);
     return;
   }
 
@@ -653,41 +877,18 @@ function renderShop(){
     const extra = document.createElement("div");
     extra.className = "muted";
     extra.style.marginTop = "8px";
-    extra.textContent = "Du får ett slumpdjur från området. Ibland får du något lite ovanligare…";
+    extra.textContent = "Rariteter: Common 70%, Uncommon 20%, Rare 9%, Epic 1%.";
     items.appendChild(extra);
   }
 }
 
 /* =========================
-   ACTIONS
+   ACTIONS: KÖP
 ========================= */
-function nextLockedZoneKey(){
-  // lås upp i ordning: forest -> savannah -> ocean -> ice -> fantasy
-  for(const z of ZONES){
-    if(!unlocked[z.key]) return z.key;
-  }
-  return null;
-}
-
-function unlockZone(zoneKey){
-  if(unlocked[zoneKey]) return;
-  if(stars < PRICES.unlock){
-    setToast("Du har inte tillräckligt med stjärnor.", false);
-    return;
-  }
-  stars -= PRICES.unlock;
-  unlocked[zoneKey] = true;
-  saveState();
-  updateStarsUI();
-  renderZoo();
-  renderShop();
-  setToast(`🔓 Du låste upp ${ZONES.find(z=>z.key===zoneKey).name}!`);
-}
-
-function buyAnimal(zoneKey, emoji){
+function buyAnimal(zoneKey, emoji, rarity){
   if(stars < PRICES.animal) return;
   stars -= PRICES.animal;
-  animalsByZone[zoneKey].push(emoji);
+  animalsByZone[zoneKey].push({ emoji, rarity: rarity || "common" });
   saveState();
   updateStarsUI();
   renderZoo();
@@ -695,10 +896,31 @@ function buyAnimal(zoneKey, emoji){
   setToast(`Du köpte ${emoji} till ${ZONES.find(z=>z.key===zoneKey).name}!`);
 }
 
+function placeDecorInGrid(zoneKey, emoji){
+  const grid = decorGridByZone[zoneKey] || Array(36).fill(null);
+
+  // samla tomma index som inte är stig
+  const empty = [];
+  for(let i=0;i<36;i++){
+    if(PATH_INDEXES.has(i)) continue;
+    if(grid[i] === null) empty.push(i);
+  }
+  if(empty.length === 0) return false;
+
+  const pick = empty[Math.floor(Math.random()*empty.length)];
+  grid[pick] = emoji;
+  decorGridByZone[zoneKey] = grid;
+  return true;
+}
+
 function buyDecor(zoneKey, emoji){
   if(stars < PRICES.decor) return;
+  const ok = placeDecorInGrid(zoneKey, emoji);
+  if(!ok){
+    setToast("Kartan är full av dekorationer här! Välj ett annat område.", false);
+    return;
+  }
   stars -= PRICES.decor;
-  decorByZone[zoneKey].push(emoji);
   saveState();
   updateStarsUI();
   renderZoo();
@@ -706,29 +928,35 @@ function buyDecor(zoneKey, emoji){
   setToast(`Dekoration ${emoji} placerades i ${ZONES.find(z=>z.key===zoneKey).name}!`);
 }
 
+function rollRarity(){
+  const r = Math.random();
+  let acc = 0;
+  for(const item of RARITY_CHANCE){
+    acc += item.p;
+    if(r <= acc) return item.r;
+  }
+  return "common";
+}
+
+function pickFrom(arr){
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+
 function buyBlindBag(zoneKey){
   if(stars < PRICES.blind) return;
   stars -= PRICES.blind;
 
-  // Enkel “raritet”: 15% chans att få ett “specialdjur” (om vi har)
-  const specials = {
-    forest:["🦄"], savannah:["🐲"], ocean:["🦈"], ice:["🐻‍❄️"], fantasy:["🐉","🦄"]
-  };
-  let pick = null;
-  if(Math.random() < 0.15 && (specials[zoneKey]||[]).length){
-    const arr = specials[zoneKey];
-    pick = arr[Math.floor(Math.random()*arr.length)];
-  } else {
-    const arr = ANIMALS_BY_ZONE[zoneKey] || [];
-    pick = arr[Math.floor(Math.random()*arr.length)];
-  }
+  const rarity = rollRarity();
+  const pool = ANIMALS_POOL[zoneKey]?.[rarity] || ANIMALS_POOL[zoneKey]?.common || ["🐾"];
+  const emoji = pickFrom(pool);
 
-  animalsByZone[zoneKey].push(pick);
+  animalsByZone[zoneKey].push({ emoji, rarity });
+
   saveState();
   updateStarsUI();
   renderZoo();
   renderShop();
-  setToast(`🎁 Blind Bag! Du fick: ${pick}`);
+  setToast(`🎁 Blind Bag! Du fick: ${emoji} (${rarity.toUpperCase()})`);
 }
 
 /* =========================
@@ -738,50 +966,63 @@ function init(){
   loadState();
   updateStarsUI();
   updateNameUI();
+  updateProgressUI();
   renderZoneSelect();
   renderZoo();
-
-  document.getElementById("saveNameBtn").addEventListener("click", () => {
-    const v = (document.getElementById("zooNameInput").value || "").trim();
-    zooName = v || "Mattezoo";
-    saveState();
-    updateNameUI();
-    setToast("Zoonamnet sparades!");
-  });
-
-  document.getElementById("buyMode").addEventListener("change", renderShop);
-  document.getElementById("zoneSelect").addEventListener("change", renderShop);
-
-  document.getElementById("refreshBtn").addEventListener("click", () => {
-    init(); // läs in igen
-    setToast("Uppdaterat!");
-  });
-
-  document.getElementById("resetBtn").addEventListener("click", () => {
-    if(!confirm("Vill du nollställa allt? (stjärnor, djur, upplåsningar)")) return;
-    localStorage.removeItem(KEY_STARS);
-    localStorage.removeItem(KEY_NAME);
-    localStorage.removeItem(KEY_UNLOCK);
-    localStorage.removeItem(KEY_ANIMALS);
-    localStorage.removeItem(KEY_DECOR);
-    // reset runtime
-    stars = 0;
-    zooName = "Mattezoo";
-    unlocked = { forest:true, savannah:false, ocean:false, ice:false, fantasy:false };
-    animalsByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[] };
-    decorByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[] };
-    saveState();
-    updateStarsUI();
-    updateNameUI();
-    renderZoo();
-    renderShop();
-    setToast("Allt är nollställt.");
-  });
-
   renderShop();
 }
 
+document.getElementById("saveNameBtn").addEventListener("click", () => {
+  const v = (document.getElementById("zooNameInput").value || "").trim();
+  zooName = v || "Mattezoo";
+  saveState();
+  updateNameUI();
+  setToast("Zoonamnet sparades!");
+});
+
+document.getElementById("buyMode").addEventListener("change", renderShop);
+document.getElementById("zoneSelect").addEventListener("change", renderShop);
+
+document.getElementById("syncBtn").addEventListener("click", () => {
+  init();
+  setToast("Synkat!");
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if(!confirm("Vill du nollställa allt? (stjärnor, djur, dekorationer, upplåsning, uppdrag)")) return;
+  localStorage.removeItem(KEY_STARS);
+  localStorage.removeItem(KEY_NAME);
+  localStorage.removeItem(KEY_UNLOCK);
+  localStorage.removeItem(KEY_ANIMALS);
+  localStorage.removeItem(KEY_DECOR);
+  localStorage.removeItem(KEY_PROG);
+  init();
+  setToast("Allt är nollställt.");
+});
+
 init();
+
+/* =========================
+   KONTRAKT FÖR SPEL-SIDORNA
+   (Lägg detta i dina spel när eleven lyckas)
+========================= */
+/*
+  // 1) Ge en stjärna
+  let s = parseInt(localStorage.getItem("mathZooStars") || "0", 10);
+  s += 1;
+  localStorage.setItem("mathZooStars", JSON.stringify(s));
+
+  // 2) Öka uppdragsräknare
+  // multiplikation.html:
+  let p = JSON.parse(localStorage.getItem("mathZooProgress") || "{}");
+  p.mult = (p.mult || 0) + 1;
+  localStorage.setItem("mathZooProgress", JSON.stringify(p));
+
+  // ekvationer.html:
+  let p = JSON.parse(localStorage.getItem("mathZooProgress") || "{}");
+  p.eq = (p.eq || 0) + 1;
+  localStorage.setItem("mathZooProgress", JSON.stringify(p));
+*/
 </script>
 </body>
 </html>
