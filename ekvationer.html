@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ekvationstränare</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #eef2f7;
+        margin: 0;
+        padding: 24px 14px 40px;
+    }
+    #container {
+        position: relative;
+        background: white;
+        padding: 18px 18px 22px;
+        border-radius: 14px;
+        width: 900px;
+        max-width: 100%;
+        margin: auto;
+        box-shadow: 0 6px 22px rgba(0,0,0,0.09);
+        border-top: 6px solid #4CAF50;
+    }
+    h2 {
+        margin: 0 0 8px;
+        color: #2e7d32;
+    }
+    p { margin: 8px 0 10px; line-height: 1.35; }
+    .muted { color:#566; font-size:14px; }
+
+    input, button {
+        padding: 9px 10px;
+        font-size: 16px;
+        margin-top: 6px;
+    }
+    input {
+        border-radius: 10px;
+        border: 1px solid #cfcfcf;
+    }
+    button {
+        margin-right: 6px;
+        border-radius: 10px;
+        border: none;
+        background-color: #4CAF50;
+        color: #fff;
+        cursor: pointer;
+        font-weight: 700;
+    }
+    button:hover { background-color: #43a047; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+
+    .topRow{
+        display:flex;
+        gap:12px;
+        flex-wrap:wrap;
+        align-items:center;
+        justify-content:space-between;
+        margin-bottom:10px;
+    }
+    .backLink{
+        text-decoration:none;
+        color:#1b5e20;
+        background:#f1f8e9;
+        border:2px solid #c5e1a5;
+        padding:8px 10px;
+        border-radius:12px;
+        font-weight:800;
+        display:inline-block;
+    }
+    .backLink:hover{ box-shadow:0 4px 12px rgba(0,0,0,0.12); transform: translateY(-1px); }
+
+    #scoreBox {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        background: #fffde7;
+        border: 1px solid #ffe082;
+        border-radius: 999px;
+        padding: 7px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 800;
+        color: #f57f17;
+    }
+    #scoreBox span.emoji { font-size: 20px; }
+
+    #steps {
+        margin-top: 14px;
+        background: #fafafa;
+        padding: 12px;
+        border-radius: 12px;
+        min-height: 120px;
+        max-height: 340px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+    }
+    .step {
+        padding: 6px 0;
+        border-bottom: 1px solid #eee;
+        font-family: "Consolas", "Courier New", monospace;
+        display: flex;
+        justify-content: center;
+        align-items: baseline;
+        gap: 8px;
+    }
+    .step:last-child { border-bottom: none; }
+
+    .step .left {
+        text-align: right;
+        min-width: 42%;
+        white-space: nowrap;
+    }
+    .step .eq {
+        text-align: center;
+        min-width: 12px;
+        font-weight: 800;
+    }
+    .step .right {
+        text-align: left;
+        min-width: 42%;
+        white-space: nowrap;
+    }
+
+    .op-green {
+        color: #89dc8e;
+        font-weight: bold;
+    }
+
+    #suggestion {
+        margin-top: 12px;
+        font-style: italic;
+        color: #1b5e20;
+        background: #e8f5e9;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid #c8e6c9;
+    }
+
+    .button-row { margin-top: 6px; margin-bottom: 6px; display:flex; flex-wrap:wrap; gap:6px; }
+    .fieldRow { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+</style>
+</head>
+<body>
+
+<div id="container">
+    <div id="scoreBox" title="Stjärnor (delas med Mattezoo)">
+        <span class="emoji">⭐</span>
+        <span id="scoreValue">0</span>
+    </div>
+
+    <div class="topRow">
+        <div>
+            <h2>Ekvationstränare – testa steg för steg</h2>
+            <div class="muted">Stjärnor och uppdrag sparas till Mattezoo.</div>
+        </div>
+        <a class="backLink" href="index.html">⬅ Tillbaka till Mattezoo</a>
+    </div>
+
+    <p>
+        Du kan skriva en egen ekvation, t.ex. <b>3x + 5 = 20</b>,<br>
+        <b>eller klicka på en av knapparna för att slumpa fram en ekvation.</b><br>
+        (Du kan skriva <b>3x</b> eller <b>3*x</b>, programmet fixar stjärnan åt dig.)
+    </p>
+
+    <div class="fieldRow">
+        <input id="eqInput" type="text" style="flex:1; min-width:260px;" placeholder="t.ex. 3x + 5 = 20">
+    </div>
+
+    <div class="button-row">
+        <button onclick="startFromInput()">Starta med min ekvation</button>
+        <button onclick="startRandom()">Slumpa ekvation (x i ett led)</button>
+        <button onclick="startRandomBoth()">Slumpa ekvation (x i båda leden)</button>
+    </div>
+
+    <h3 style="margin:14px 0 6px;">Nytt steg</h3>
+    <p style="margin-top:0;">
+        Vad vill du göra med ekvationen nu? Testa t.ex. <b>+7, -3, *2, /4</b> eller <b>+2x</b>.
+    </p>
+
+    <div class="fieldRow">
+        <input id="opInput" type="text" style="flex:1; min-width:240px;" disabled placeholder="t.ex. -5, /3 eller -2x">
+        <button onclick="applyOp()" id="opButton" disabled>Kör steg</button>
+    </div>
+
+    <h3 style="margin:14px 0 6px;">Steg</h3>
+    <div id="steps"></div>
+
+    <div id="suggestion">
+        Fundera på vad du vill göra för att komma närmare att x blir ensamt.
+    </div>
+</div>
+
+<script>
+/* =========================
+   MATTEZOO-NYCKLAR (DELAT)
+========================= */
+const KEY_STARS = "mathZooStars";      // gemensamma stjärnor
+const KEY_PROG  = "mathZooProgress";   // { mult: n, eq: n }
+
+/* =========================
+   EKVATION STATE
+========================= */
+let leftSideObj = null;
+let rightSideObj = null;
+
+/* =========================
+   HJÄLPFUNKTIONER: STJÄRNOR/PROGRESS
+========================= */
+function getStars(){
+    return parseInt(localStorage.getItem(KEY_STARS) || "0", 10);
+}
+function setStars(n){
+    localStorage.setItem(KEY_STARS, JSON.stringify(n));
+}
+function incStars(n=1){
+    const s = getStars() + n;
+    setStars(s);
+    updateScoreBox();
+    return s;
+}
+function getProgress(){
+    try {
+        return JSON.parse(localStorage.getItem(KEY_PROG) || "{}");
+    } catch {
+        return {};
+    }
+}
+function incEqProgress(n=1){
+    const p = getProgress();
+    p.eq = (p.eq || 0) + n;
+    localStorage.setItem(KEY_PROG, JSON.stringify(p));
+}
+
+/* =========================
+   UI
+========================= */
+function updateScoreBox() {
+    document.getElementById("scoreValue").innerText = String(getStars());
+}
+
+/* =========================
+   MATTE: RENDERING & PARSING
+========================= */
+function roundTo(value, decimals) {
+    const factor = Math.pow(10, decimals);
+    return Math.round(value * factor) / factor;
+}
+function normZero(value) {
+    return Math.abs(value) < 1e-10 ? 0 : value;
+}
+
+function parseLinear(expr) {
+    let clean = expr.replace(/X/g, "x");
+    clean = clean.replace(/\s+/g, "");
+    clean = clean.replace(/(\d)x/g, "$1*x");
+
+    function evalFor(xVal) {
+        const withX = clean.replace(/x/g, "(" + xVal + ")");
+        return Function("return " + withX)();
+    }
+
+    const b = evalFor(0);
+    const a = evalFor(1) - b;
+    return { a: normZero(a), b: normZero(b) };
+}
+
+function renderSide(side) {
+    let a = normZero(roundTo(side.a, 6));
+    let b = normZero(roundTo(side.b, 2));
+
+    if (a === 0) return b.toString();
+
+    // försök visa x/n om a ≈ 1/n
+    let fracForm = null;
+    const aAbs = Math.abs(a);
+    for (let n = 2; n <= 10; n++) {
+        if (Math.abs(aAbs - 1/n) < 1e-6) {
+            fracForm = { n, sign: Math.sign(a) };
+            break;
+        }
+    }
+
+    let xPart = "";
+    if (fracForm) {
+        xPart = (fracForm.sign > 0 ? "" : "-") + "x/" + fracForm.n;
+    } else {
+        if (a === 1) xPart = "x";
+        else if (a === -1) xPart = "-x";
+        else xPart = a + "x";
+    }
+
+    if (b === 0) return xPart;
+
+    const sign = b > 0 ? " + " : " - ";
+    return xPart + sign + Math.abs(b);
+}
+
+function addStep(text, highlightOp = null) {
+    const container = document.getElementById("steps");
+    const div = document.createElement("div");
+    div.className = "step";
+
+    const [L, R] = text.split(" = ");
+
+    let leftHTML = L;
+    let rightHTML = R;
+
+    if (highlightOp) {
+        const opSpan = `<span class="op-green">${highlightOp}</span>`;
+        // markera bara själva op-texten i raden
+        leftHTML = leftHTML.replace(highlightOp, opSpan);
+        rightHTML = rightHTML.replace(highlightOp, opSpan);
+    }
+
+    const spanLeft = document.createElement("span");
+    spanLeft.className = "left";
+    spanLeft.innerHTML = leftHTML;
+
+    const spanEq = document.createElement("span");
+    spanEq.className = "eq";
+    spanEq.innerText = "=";
+
+    const spanRight = document.createElement("span");
+    spanRight.className = "right";
+    spanRight.innerHTML = rightHTML;
+
+    div.appendChild(spanLeft);
+    div.appendChild(spanEq);
+    div.appendChild(spanRight);
+
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function isSolved(left, right) {
+    const aL = normZero(left.a), bL = normZero(left.b);
+    const aR = normZero(right.a), bR = normZero(right.b);
+
+    const leftIsX   = (aL === 1 && bL === 0);
+    const rightIsX  = (aR === 1 && bR === 0);
+    const leftIsNum = (aL === 0);
+    const rightIsNum= (aR === 0);
+
+    return (leftIsX && rightIsNum) || (rightIsX && leftIsNum);
+}
+
+function updateDisplay() {
+    const eqText = renderSide(leftSideObj) + " = " + renderSide(rightSideObj);
+    addStep(eqText);
+
+    if (isSolved(leftSideObj, rightSideObj)) {
+        // ✅ här ger vi stjärna + uppdrag för Mattezoo
+        incStars(1);
+        incEqProgress(1);
+
+        document.getElementById("suggestion").innerText =
+            "🎉 Grattis! Du har löst ekvationen!";
+
+        document.getElementById("opInput").disabled = true;
+        document.getElementById("opButton").disabled = true;
+        return;
+    }
+
+    document.getElementById("suggestion").innerText =
+        "Fundera på vad du vill göra för att komma närmare att x blir ensamt.";
+}
+
+/* =========================
+   SLUMPEKVATIONER
+========================= */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function resetUI(eqText) {
+    document.getElementById("steps").innerHTML = "";
+    document.getElementById("eqInput").value = eqText;
+    document.getElementById("opInput").disabled = false;
+    document.getElementById("opButton").disabled = false;
+    document.getElementById("opInput").value = "";
+    document.getElementById("suggestion").innerText =
+        "Fundera på vad du vill göra för att komma närmare att x blir ensamt.";
+}
+
+function startRandom() {
+    // ibland x/n + b = c (x i täljaren)
+    const useFraction = Math.random() < 0.4;
+
+    if (useFraction) {
+        const n = getRandomInt(2, 6);
+        const k = getRandomInt(1, 10);
+        const xVal = k * n;
+        const b = getRandomInt(-5, 5);
+        const c = (xVal / n) + b;
+
+        leftSideObj = { a: 1/n, b };
+        rightSideObj = { a: 0, b: c };
+
+        const eqText = renderSide(leftSideObj) + " = " + renderSide(rightSideObj);
+        resetUI(eqText);
+    } else {
+        const a = getRandomInt(2, 9);
+        const xVal = getRandomInt(1, 10);
+        const b = getRandomInt(-10, 10);
+        const c = a * xVal + b;
+
+        leftSideObj = { a, b };
+        rightSideObj = { a: 0, b: c };
+
+        const eqText = renderSide(leftSideObj) + " = " + renderSide(rightSideObj);
+        resetUI(eqText);
+    }
+
+    updateDisplay();
+}
+
+function startRandomBoth() {
+    const xVal = getRandomInt(1, 10);
+    const aL = getRandomInt(1, 9);
+    const aR = getRandomInt(1, 9);
+    const bL = getRandomInt(-10, 10);
+    const bR = aL * xVal + bL - aR * xVal;
+
+    leftSideObj = { a: aL, b: bL };
+    rightSideObj = { a: aR, b: bR };
+
+    const eqText = renderSide(leftSideObj) + " = " + renderSide(rightSideObj);
+    resetUI(eqText);
+    updateDisplay();
+}
+
+/* =========================
+   INPUT & OPERATIONER
+========================= */
+function startFromInput() {
+    const raw = document.getElementById("eqInput").value;
+    if (!raw.includes("=")) {
+        alert("Ekvationen måste innehålla '='.");
+        return;
+    }
+
+    const [Lraw, Rraw] = raw.split("=");
+
+    try {
+        leftSideObj = parseLinear(Lraw);
+        rightSideObj = parseLinear(Rraw);
+    } catch {
+        alert("Kunde inte tolka ekvationen.");
+        return;
+    }
+
+    const eqText = renderSide(leftSideObj) + " = " + renderSide(rightSideObj);
+    resetUI(eqText);
+    updateDisplay();
+}
+
+function doNumeric(side, symbol, value) {
+    let a = side.a, b = side.b;
+    if (symbol === "+")      b += value;
+    else if (symbol === "-") b -= value;
+    else if (symbol === "*") { a *= value; b *= value; }
+    else if (symbol === "/") { a /= value; b /= value; }
+    return { a: normZero(a), b: normZero(b) };
+}
+
+function applyOp() {
+    const input = document.getElementById("opInput");
+    const rawOp = input.value.trim();
+
+    if (!rawOp) {
+        alert("Skriv t.ex. +7, -3, *2, /4 eller +2x.");
+        return;
+    }
+
+    const symbol = rawOp[0];
+    if (!["+","-","*","/"].includes(symbol)) {
+        alert("Operationen måste börja med +, -, * eller /.");
+        return;
+    }
+
+    let valueStr = rawOp.substring(1).trim();
+    if (valueStr === "") {
+        alert("Du måste skriva något efter tecknet.");
+        return;
+    }
+
+    const lower = valueStr.toLowerCase();
+
+    // stoppa *x eller /x
+    if ((symbol === "*" || symbol === "/") && lower.includes("x")) {
+        alert("Du kan inte multiplicera eller dividera med x.");
+        return;
+    }
+
+    // +kx / -kx
+    if ((symbol === "+" || symbol === "-") && lower.includes("x")) {
+        let cleaned = lower.replace("*","").replace("x","").replace(",",".").trim();
+        let coeff;
+
+        if (cleaned === "" || cleaned === "+") coeff = 1;
+        else if (cleaned === "-") coeff = 1;
+        else coeff = parseFloat(cleaned);
+
+        if (isNaN(coeff)) {
+            alert("Kunde inte tolka koefficienten framför x.");
+            return;
+        }
+
+        const opText = symbol + " " + valueStr;
+        const beforeLeft = renderSide(leftSideObj);
+        const beforeRight = renderSide(rightSideObj);
+
+        // visa “vad som händer”
+        addStep(`${beforeLeft} ${opText} = ${beforeRight} ${opText}`, opText);
+
+        const delta = (symbol === "+") ? coeff : -coeff;
+        leftSideObj.a = normZero(leftSideObj.a + delta);
+        rightSideObj.a = normZero(rightSideObj.a + delta);
+
+        input.value = "";
+        updateDisplay();
+        return;
+    }
+
+    // +tal, -tal, *tal, /tal
+    valueStr = valueStr.replace(",",".");
+    const value = parseFloat(valueStr);
+
+    if (isNaN(value)) {
+        alert("Kunde inte tolka talet.");
+        return;
+    }
+    if (symbol === "/" && value === 0) {
+        alert("Du kan inte dela med 0.");
+        return;
+    }
+
+    const opText = symbol + " " + value;
+    const beforeLeft = renderSide(leftSideObj);
+    const beforeRight = renderSide(rightSideObj);
+
+    addStep(`${beforeLeft} ${opText} = ${beforeRight} ${opText}`, opText);
+
+    leftSideObj = doNumeric(leftSideObj, symbol, value);
+    rightSideObj = doNumeric(rightSideObj, symbol, value);
+
+    input.value = "";
+    updateDisplay();
+}
+
+document.getElementById("opInput").addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.target.disabled) {
+        e.preventDefault();
+        applyOp();
+    }
+});
+
+/* =========================
+   INIT
+========================= */
+updateScoreBox();
+</script>
+
+</body>
+</html>
