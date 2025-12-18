@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bråk ↔ Decimal – Matcha kort</title>
+<style>
+  body{
+    font-family: Arial, sans-serif;
+    background:#eef2f7;
+    margin:0;
+    padding:24px 14px 40px;
+  }
+  #container{
+    position:relative;
+    background:#fff;
+    padding:18px 18px 22px;
+    border-radius:14px;
+    width:900px;
+    max-width:100%;
+    margin:auto;
+    box-shadow:0 6px 22px rgba(0,0,0,0.09);
+    border-top:6px solid #4CAF50;
+  }
+  h2{margin:0 0 6px; color:#2e7d32;}
+  p{margin:8px 0 10px; line-height:1.35;}
+  .muted{color:#566; font-size:14px;}
+
+  .topRow{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+    padding-right:170px; /* plats för ⭐-pillret */
+  }
+  .backLink{
+    text-decoration:none;
+    color:#1b5e20;
+    background:#f1f8e9;
+    border:2px solid #c5e1a5;
+    padding:8px 10px;
+    border-radius:12px;
+    font-weight:800;
+    display:inline-block;
+  }
+  .backLink:hover{ box-shadow:0 4px 12px rgba(0,0,0,0.12); transform: translateY(-1px); }
+
+  #scoreBox{
+    position:absolute;
+    top:14px;
+    right:14px;
+    background:#fffde7;
+    border:1px solid #ffe082;
+    border-radius:999px;
+    padding:7px 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-weight:800;
+    color:#f57f17;
+  }
+  #scoreBox .emoji{font-size:20px;}
+
+  button{
+    padding:9px 10px;
+    border-radius:10px;
+    border:none;
+    background:#4CAF50;
+    color:#fff;
+    cursor:pointer;
+    font-weight:800;
+    font-size:16px;
+  }
+  button:hover{background:#43a047;}
+  button.secondary{background:#546e7a;}
+  button.secondary:hover{background:#455a64;}
+
+  #panel{
+    margin-top:12px;
+    background:#fafafa;
+    border:1px solid #ddd;
+    border-radius:12px;
+    padding:14px;
+  }
+
+  .row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  #statusLine{
+    margin-top:10px;
+    font-style:italic;
+    color:#1b5e20;
+    background:#e8f5e9;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #c8e6c9;
+  }
+
+  .gridWrap{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:12px;
+    margin-top:12px;
+  }
+
+  .colTitle{
+    font-weight:900;
+    color:#334;
+    margin-bottom:8px;
+  }
+
+  .cards{
+    display:grid;
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+    gap:10px;
+  }
+
+  .card{
+    background:#fff;
+    border:2px solid #d9dee7;
+    border-radius:14px;
+    padding:14px 10px;
+    text-align:center;
+    font-weight:900;
+    font-size:22px;
+    cursor:pointer;
+    user-select:none;
+    transition: transform .06s ease, box-shadow .06s ease, border-color .06s ease;
+    box-shadow:0 2px 10px rgba(0,0,0,0.05);
+  }
+  .card:hover{
+    transform: translateY(-1px);
+    box-shadow:0 6px 18px rgba(0,0,0,0.10);
+  }
+  .card.selected{
+    border-color:#4f46e5;
+    box-shadow:0 0 0 3px rgba(79,70,229,0.15);
+  }
+  .card.matched{
+    background:#dcfce7;
+    border-color:#16a34a;
+    color:#065f46;
+    cursor:default;
+    box-shadow:none;
+    transform:none;
+  }
+  .card.wrong{
+    border-color:#dc2626;
+    box-shadow:0 0 0 3px rgba(220,38,38,0.12);
+  }
+
+  .pill{
+    background:#fff3e0;
+    border:1px solid #ffcc80;
+    color:#6d4c41;
+    border-radius:999px;
+    padding:6px 10px;
+    font-weight:800;
+  }
+
+  @media (max-width:520px){
+    #scoreBox{position:static; margin-bottom:10px;}
+    .topRow{padding-right:0;}
+    .cards{grid-template-columns: 1fr;}
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="scoreBox" title="Stjärnor (delas med Mattezoo)">
+    <span class="emoji">⭐</span>
+    <span id="starsText">0</span>
+  </div>
+
+  <div class="topRow">
+    <div>
+      <h2>Bråk ↔ Decimal – Matcha kort</h2>
+      <div class="muted">Du får ⭐ bara om du matchar alla 8 utan ett enda fel.</div>
+    </div>
+    <a class="backLink" href="index.html">⬅ Tillbaka till Mattezoo</a>
+  </div>
+
+  <div id="panel">
+    <div class="row">
+      <div class="pill">Fel: <span id="mistakes">0</span></div>
+      <div class="pill">Matchade par: <span id="matchedCount">0</span> / 8</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button id="newBtn" class="secondary">Blanda om</button>
+        <button id="resetBtn" class="secondary">Starta om</button>
+      </div>
+    </div>
+
+    <div class="gridWrap">
+      <div>
+        <div class="colTitle">Bråk</div>
+        <div id="fracCards" class="cards"></div>
+      </div>
+      <div>
+        <div class="colTitle">Decimal</div>
+        <div id="decCards" class="cards"></div>
+      </div>
+    </div>
+
+    <div id="statusLine">Klicka ett bråk och sedan en decimal som du tror hör ihop.</div>
+  </div>
+</div>
+
+<script>
+/* =========================
+   MATTEZOO-NYCKLAR (DELAT)
+========================= */
+const KEY_STARS = "mathZooStars";
+const KEY_PROG  = "mathZooProgress";
+
+/* =========================
+   DATA
+========================= */
+const PAIRS = [
+  { id:"p1", frac:"1/2",    dec:"0,5" },
+  { id:"p2", frac:"1/3",    dec:"0,333…" },
+  { id:"p3", frac:"1/4",    dec:"0,25" },
+  { id:"p4", frac:"1/5",    dec:"0,2" },
+  { id:"p5", frac:"2/3",    dec:"0,666…" },
+  { id:"p6", frac:"1/10",   dec:"0,1" },
+  { id:"p7", frac:"1/100",  dec:"0,01" },
+  { id:"p8", frac:"1/1000", dec:"0,001" }
+];
+
+let fracOrder = [];
+let decOrder  = [];
+
+let selectedFrac = null; // {id, el}
+let selectedDec  = null; // {id, el}
+
+let mistakes = 0;
+let matched = new Set(); // ids som är klara
+
+/* =========================
+   STJÄRNOR + PROGRESS
+========================= */
+function getStars(){
+  return parseInt(localStorage.getItem(KEY_STARS) || "0", 10);
+}
+function setStars(n){
+  localStorage.setItem(KEY_STARS, JSON.stringify(n));
+}
+function incStars(n=1){
+  setStars(getStars() + n);
+  updateStarsUI();
+}
+function getProg(){
+  try { return JSON.parse(localStorage.getItem(KEY_PROG) || "{}"); }
+  catch { return {}; }
+}
+function incFracDecProg(n=1){
+  const p = getProg();
+  p.fracdec = (p.fracdec || 0) + n;
+  localStorage.setItem(KEY_PROG, JSON.stringify(p));
+}
+function updateStarsUI(){
+  document.getElementById("starsText").textContent = String(getStars());
+}
+
+/* =========================
+   UI HELPERS
+========================= */
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+function setStatus(msg){
+  document.getElementById("statusLine").textContent = msg;
+}
+function updateCounters(){
+  document.getElementById("mistakes").textContent = String(mistakes);
+  document.getElementById("matchedCount").textContent = String(matched.size);
+}
+function clearSelections(){
+  if(selectedFrac?.el) selectedFrac.el.classList.remove("selected");
+  if(selectedDec?.el) selectedDec.el.classList.remove("selected");
+  selectedFrac = null;
+  selectedDec = null;
+}
+
+/* =========================
+   RENDER
+========================= */
+function render(){
+  const fracDiv = document.getElementById("fracCards");
+  const decDiv  = document.getElementById("decCards");
+  fracDiv.innerHTML = "";
+  decDiv.innerHTML  = "";
+
+  fracOrder.forEach(item=>{
+    const card = document.createElement("div");
+    card.className = "card";
+    card.textContent = item.frac;
+    card.dataset.id = item.id;
+
+    if(matched.has(item.id)){
+      card.classList.add("matched");
+    } else {
+      card.addEventListener("click", ()=> onPickFrac(item.id, card));
+    }
+    fracDiv.appendChild(card);
+  });
+
+  decOrder.forEach(item=>{
+    const card = document.createElement("div");
+    card.className = "card";
+    card.textContent = item.dec;
+    card.dataset.id = item.id;
+
+    if(matched.has(item.id)){
+      card.classList.add("matched");
+    } else {
+      card.addEventListener("click", ()=> onPickDec(item.id, card));
+    }
+    decDiv.appendChild(card);
+  });
+
+  updateCounters();
+}
+
+/* =========================
+   GAME LOGIC
+========================= */
+function onPickFrac(id, el){
+  if(matched.has(id)) return;
+
+  if(selectedFrac && selectedFrac.el === el){
+    el.classList.remove("selected");
+    selectedFrac = null;
+    return;
+  }
+  if(selectedFrac?.el) selectedFrac.el.classList.remove("selected");
+  selectedFrac = { id, el };
+  el.classList.add("selected");
+
+  tryMatch();
+}
+
+function onPickDec(id, el){
+  if(matched.has(id)) return;
+
+  if(selectedDec && selectedDec.el === el){
+    el.classList.remove("selected");
+    selectedDec = null;
+    return;
+  }
+  if(selectedDec?.el) selectedDec.el.classList.remove("selected");
+  selectedDec = { id, el };
+  el.classList.add("selected");
+
+  tryMatch();
+}
+
+function tryMatch(){
+  if(!selectedFrac || !selectedDec) return;
+
+  const correct = selectedFrac.id === selectedDec.id;
+
+  if(correct){
+    matched.add(selectedFrac.id);
+
+    selectedFrac.el.classList.remove("selected");
+    selectedDec.el.classList.remove("selected");
+    selectedFrac.el.classList.add("matched");
+    selectedDec.el.classList.add("matched");
+
+    clearSelections();
+    updateCounters();
+
+    if(matched.size === PAIRS.length){
+      onAllMatched();
+    } else {
+      setStatus("✅ Snyggt! Fortsätt.");
+    }
+  } else {
+    mistakes += 1;
+    updateCounters();
+
+    // röd blink
+    selectedFrac.el.classList.add("wrong");
+    selectedDec.el.classList.add("wrong");
+    setStatus("❌ Inte riktigt. Försök igen.");
+
+    setTimeout(()=>{
+      selectedFrac?.el?.classList.remove("wrong","selected");
+      selectedDec?.el?.classList.remove("wrong","selected");
+      clearSelections();
+    }, 650);
+  }
+}
+
+function onAllMatched(){
+  if(mistakes === 0){
+    incStars(1);
+    incFracDecProg(1);
+    setStatus("🎉 Perfekt! Inga fel. Du får 1 ⭐!");
+  } else {
+    setStatus("✅ Alla matchade! Men du hade fel någon gång, så ingen ⭐ den här rundan. Testa igen!");
+  }
+}
+
+function startNew(shuffleAlso=true){
+  matched = new Set();
+  mistakes = 0;
+  clearSelections();
+
+  const base = PAIRS.map(p=>({ ...p }));
+  fracOrder = shuffleAlso ? shuffle(base) : base;
+  decOrder  = shuffleAlso ? shuffle(base) : base;
+
+  setStatus("Klicka ett bråk och sedan en decimal som du tror hör ihop.");
+  render();
+}
+
+document.getElementById("newBtn").addEventListener("click", ()=> startNew(true));
+document.getElementById("resetBtn").addEventListener("click", ()=> startNew(true));
+
+/* =========================
+   INIT
+========================= */
+updateStarsUI();
+startNew(true);
+</script>
+</body>
+</html>
