@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Multiplikationstränare</title>
+<style>
+  body{
+    font-family: Arial, sans-serif;
+    background:#eef2f7;
+    margin:0;
+    padding:24px 14px 40px;
+  }
+  #container{
+    position:relative;
+    background:#fff;
+    padding:18px 18px 22px;
+    border-radius:14px;
+    width:900px;
+    max-width:100%;
+    margin:auto;
+    box-shadow:0 6px 22px rgba(0,0,0,0.09);
+    border-top:6px solid #4CAF50;
+  }
+  h2{margin:0 0 6px; color:#2e7d32;}
+  p{margin:8px 0 10px; line-height:1.35;}
+  .muted{color:#566; font-size:14px;}
+
+  /* Top row */
+  .topRow{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+    padding-right:170px; /* plats för ⭐-pillret */
+  }
+  .backLink{
+    text-decoration:none;
+    color:#1b5e20;
+    background:#f1f8e9;
+    border:2px solid #c5e1a5;
+    padding:8px 10px;
+    border-radius:12px;
+    font-weight:800;
+    display:inline-block;
+  }
+  .backLink:hover{ box-shadow:0 4px 12px rgba(0,0,0,0.12); transform: translateY(-1px); }
+
+  /* Stars pill */
+  #scoreBox{
+    position:absolute;
+    top:14px;
+    right:14px;
+    background:#fffde7;
+    border:1px solid #ffe082;
+    border-radius:999px;
+    padding:7px 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-weight:800;
+    color:#f57f17;
+  }
+  #scoreBox .emoji{font-size:20px;}
+
+  /* Controls */
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  select, input, button{
+    padding:9px 10px;
+    border-radius:10px;
+    border:1px solid #cfcfcf;
+    font-size:16px;
+  }
+  button{
+    border:none;
+    background:#4CAF50;
+    color:#fff;
+    cursor:pointer;
+    font-weight:800;
+    border-radius:10px;
+  }
+  button:hover{background:#43a047;}
+  button.secondary{background:#546e7a;}
+  button.secondary:hover{background:#455a64;}
+  button.danger{background:#c62828;}
+  button.danger:hover{background:#b71c1c;}
+  button:disabled{opacity:.55; cursor:not-allowed;}
+
+  /* Game box */
+  #gameBox{
+    margin-top:12px;
+    background:#fafafa;
+    border:1px solid #ddd;
+    border-radius:12px;
+    padding:14px;
+  }
+  #question{
+    font-size:34px;
+    font-weight:900;
+    text-align:center;
+    margin:8px 0 12px;
+  }
+  #answerRow{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  #answer{
+    width:140px;
+    text-align:center;
+    font-size:20px;
+    border-radius:999px;
+  }
+  #feedback{
+    text-align:center;
+    min-height:48px;
+    margin-top:10px;
+    font-weight:900;
+  }
+  .ok{color:#16a34a; font-size:18px;}
+  .bad{color:#dc2626; font-size:40px; line-height:1;}
+  #status{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:10px;
+    font-size:14px;
+    color:#334;
+  }
+  #tip{
+    margin-top:12px;
+    font-style:italic;
+    color:#1b5e20;
+    background:#e8f5e9;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #c8e6c9;
+  }
+
+  /* Table buttons */
+  #tableButtons{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:8px;
+  }
+  .tbtn{
+    border:none;
+    background:#e0e7ff;
+    color:#1f2933;
+    padding:6px 10px;
+    border-radius:999px;
+    cursor:pointer;
+    font-weight:800;
+  }
+  .tbtn:hover{filter:brightness(0.98);}
+  .tbtn.active{background:#4f46e5; color:#fff;}
+  .tbtn.done{background:#dcfce7; color:#065f46; border:1px solid #16a34a;}
+
+  @media (max-width:520px){
+    #scoreBox{position:static; margin-bottom:10px;}
+    .topRow{padding-right:0;}
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="scoreBox" title="Stjärnor (delas med Mattezoo)">
+    <span class="emoji">⭐</span>
+    <span id="starsText">0</span>
+  </div>
+
+  <div class="topRow">
+    <div>
+      <h2>Multiplikationstränare</h2>
+      <div class="muted">Klara en tabell 3 varv (1–10) så får du en ⭐.</div>
+    </div>
+    <a class="backLink" href="index.html">⬅ Tillbaka till Mattezoo</a>
+  </div>
+
+  <div class="row">
+    <div>
+      <b>Välj tabell</b><br/>
+      <div id="tableButtons"></div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:10px;">
+    <button id="startBtn" disabled>Starta</button>
+    <button id="resetTableBtn" class="secondary" disabled>Nollställ vald tabell</button>
+    <button id="resetAllBtn" class="danger">Nollställ ALLT</button>
+  </div>
+
+  <div id="gameBox" style="display:none;">
+    <div id="question">—</div>
+
+    <div id="answerRow">
+      <input id="answer" type="number" placeholder="Svar" />
+      <button id="okBtn">OK</button>
+    </div>
+
+    <div id="feedback"></div>
+
+    <div id="status">
+      <div>Uppgifter kvar: <b id="remaining">0</b></div>
+      <div>Varv: <b id="rounds">0</b> / 3</div>
+    </div>
+
+    <div id="tip">Sikta på att få alla rätt. Du kan alltid prova dig fram.</div>
+  </div>
+</div>
+
+<script>
+/* =========================
+   MATTEZOO-NYCKLAR (DELAT)
+========================= */
+const KEY_STARS = "mathZooStars";
+const KEY_PROG  = "mathZooProgress";
+
+/* =========================
+   LOKAL DATA FÖR TABELLPROGRESS
+   (endast för multiplikationssidan)
+========================= */
+const KEY_LOCAL = "multTrainer_simple_v1";
+
+/* =========================
+   STATE
+========================= */
+const TABLES = [1,2,3,4,5,6,7,8,9,10];
+
+let selectedTable = null;
+
+// progress per tabell: { 1: { rounds:0, starGiven:false }, ... }
+let tableProgress = {};
+
+// runda: tasks som återstår i aktuell omgång
+let tasks = [];
+let currentTask = null;
+
+// UI
+const starsText = document.getElementById("starsText");
+const tableButtonsDiv = document.getElementById("tableButtons");
+const startBtn = document.getElementById("startBtn");
+const resetTableBtn = document.getElementById("resetTableBtn");
+const resetAllBtn = document.getElementById("resetAllBtn");
+const gameBox = document.getElementById("gameBox");
+const questionDiv = document.getElementById("question");
+const answerInput = document.getElementById("answer");
+const okBtn = document.getElementById("okBtn");
+const feedbackDiv = document.getElementById("feedback");
+const remainingSpan = document.getElementById("remaining");
+const roundsSpan = document.getElementById("rounds");
+
+/* =========================
+   STJÄRNOR + PROGRESS (MATTEZOO)
+========================= */
+function getStars(){
+  return parseInt(localStorage.getItem(KEY_STARS) || "0", 10);
+}
+function setStars(n){
+  localStorage.setItem(KEY_STARS, JSON.stringify(n));
+}
+function incStars(n=2){
+  const s = getStars() + n;
+  setStars(s);
+  updateStarsUI();
+}
+
+function getProg(){
+  try{ return JSON.parse(localStorage.getItem(KEY_PROG) || "{}"); }
+  catch{ return {}; }
+}
+function incMultProg(n=1){
+  const p = getProg();
+  p.mult = (p.mult || 0) + n;
+  localStorage.setItem(KEY_PROG, JSON.stringify(p));
+}
+
+function updateStarsUI(){
+  starsText.textContent = String(getStars());
+}
+
+/* =========================
+   SPARA/LADDA (lokal mult)
+========================= */
+function saveLocal(){
+  localStorage.setItem(KEY_LOCAL, JSON.stringify({ tableProgress }));
+}
+function loadLocal(){
+  const raw = localStorage.getItem(KEY_LOCAL);
+  if(raw){
+    try{
+      const data = JSON.parse(raw);
+      if(data && typeof data === "object" && data.tableProgress){
+        tableProgress = data.tableProgress;
+      }
+    }catch{}
+  }
+  // initiera om något saknas
+  TABLES.forEach(t=>{
+    if(!tableProgress[t]) tableProgress[t] = { rounds:0, starGiven:false };
+  });
+  saveLocal();
+}
+
+/* =========================
+   UI: TABELLKNAPPAR
+========================= */
+function renderTableButtons(){
+  tableButtonsDiv.innerHTML = "";
+  TABLES.forEach(t=>{
+    const btn = document.createElement("button");
+    btn.className = "tbtn";
+    btn.textContent = `${t}:an`;
+
+    const prog = tableProgress[t];
+    if(prog.rounds >= 3) btn.classList.add("done");
+    if(selectedTable === t) btn.classList.add("active");
+
+    btn.addEventListener("click", ()=>{
+      selectedTable = t;
+      renderTableButtons();
+      startBtn.disabled = false;
+      resetTableBtn.disabled = false;
+      stopSessionUI();
+      updateRoundsUI();
+    });
+
+    tableButtonsDiv.appendChild(btn);
+  });
+}
+
+function updateRoundsUI(){
+  if(!selectedTable){
+    roundsSpan.textContent = "0";
+    return;
+  }
+  roundsSpan.textContent = String(tableProgress[selectedTable].rounds);
+}
+
+/* =========================
+   SESSION (3 varv)
+========================= */
+function buildTasksForTable(t){
+  const list = [];
+  for(let i=1;i<=10;i++){
+    list.push({ a:t, b:i });
+  }
+  return list;
+}
+
+function startSession(){
+  if(!selectedTable) return;
+
+  const prog = tableProgress[selectedTable];
+
+  // om tabellen redan klar (3 varv), låt dem ändå spela men utan extra stjärna
+  tasks = buildTasksForTable(selectedTable);
+
+  gameBox.style.display = "block";
+  feedbackDiv.textContent = "";
+  feedbackDiv.className = "";
+  answerInput.value = "";
+  answerInput.focus();
+
+  updateRoundsUI();
+  pickNextQuestion();
+}
+
+function stopSessionUI(){
+  gameBox.style.display = "none";
+  feedbackDiv.textContent = "";
+  feedbackDiv.className = "";
+  tasks = [];
+  currentTask = null;
+}
+
+function pickNextQuestion(){
+  if(tasks.length === 0){
+    finishRound();
+    return;
+  }
+  const idx = Math.floor(Math.random() * tasks.length);
+  currentTask = tasks[idx];
+
+  questionDiv.textContent = `${currentTask.a} × ${currentTask.b} = ?`;
+  remainingSpan.textContent = String(tasks.length);
+  answerInput.value = "";
+  answerInput.focus();
+}
+
+function finishRound(){
+  const prog = tableProgress[selectedTable];
+  prog.rounds += 1;
+
+  saveLocal();
+  renderTableButtons();
+  updateRoundsUI();
+
+  // om vi nådde 3 varv och inte redan gett stjärna -> ge 1 ⭐ + progress mult +1
+  if(prog.rounds >= 3 && !prog.starGiven){
+    prog.starGiven = true;
+    saveLocal();
+
+    incStars(1);
+    incMultProg(1);
+
+    feedbackDiv.textContent = `🎉 Du klarade ${selectedTable}:ans tabell 3 varv och får 2 ⭐!`;
+    feedbackDiv.className = "ok";
+  } else {
+    if(prog.rounds >= 3){
+      feedbackDiv.textContent = `✅ Bra jobbat! ${selectedTable}:ans tabell är redan klar, men du kan öva mer.`;
+    } else {
+      feedbackDiv.textContent = `Bra! Varv ${prog.rounds} av 3 klart.`;
+    }
+    feedbackDiv.className = "ok";
+  }
+
+  // pausa lite och göm spelrutan (känns “klart”)
+  setTimeout(()=>{
+    stopSessionUI();
+  }, 900);
+}
+
+function checkAnswer(){
+  if(!currentTask) return;
+
+  const user = parseInt(answerInput.value, 10);
+  const correct = currentTask.a * currentTask.b;
+
+  if(Number.isNaN(user)){
+    feedbackDiv.textContent = " ";
+    feedbackDiv.className = "bad";
+    return;
+  }
+
+  if(user === correct){
+    feedbackDiv.textContent = "Rätt!";
+    feedbackDiv.className = "ok";
+
+    tasks = tasks.filter(t => !(t.a === currentTask.a && t.b === currentTask.b));
+    remainingSpan.textContent = String(tasks.length);
+
+    setTimeout(pickNextQuestion, 450);
+  } else {
+    feedbackDiv.textContent = String(correct);
+    feedbackDiv.className = "bad";
+    setTimeout(pickNextQuestion, 2500);
+  }
+}
+
+/* =========================
+   RESET
+========================= */
+function resetSelectedTable(){
+  if(!selectedTable) return;
+  if(!confirm(`Nollställa ${selectedTable}:ans tabell?`)) return;
+
+  tableProgress[selectedTable] = { rounds:0, starGiven:false };
+  saveLocal();
+  renderTableButtons();
+  updateRoundsUI();
+  stopSessionUI();
+}
+
+function resetAll(){
+  if(!confirm("Nollställa ALLT för multiplikation (alla tabeller)?")) return;
+
+  tableProgress = {};
+  TABLES.forEach(t=> tableProgress[t] = { rounds:0, starGiven:false });
+  saveLocal();
+
+  selectedTable = null;
+  renderTableButtons();
+  startBtn.disabled = true;
+  resetTableBtn.disabled = true;
+  stopSessionUI();
+}
+
+/* =========================
+   EVENTS
+========================= */
+startBtn.addEventListener("click", startSession);
+resetTableBtn.addEventListener("click", resetSelectedTable);
+resetAllBtn.addEventListener("click", resetAll);
+
+okBtn.addEventListener("click", checkAnswer);
+answerInput.addEventListener("keydown", (e)=>{
+  if(e.key === "Enter") checkAnswer();
+});
+
+/* =========================
+   INIT
+========================= */
+loadLocal();
+updateStarsUI();
+renderTableButtons();
+</script>
+</body>
+</html>
