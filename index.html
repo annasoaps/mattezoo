@@ -1581,6 +1581,8 @@ function init(){
   renderZoo();
   renderShop();
   updateDailyUI();
+  renderTodaySummary();
+
 }
 
 document.getElementById("saveNameBtn").addEventListener("click", () => {
@@ -1614,6 +1616,44 @@ document.getElementById("resetBtn").addEventListener("click", () => {
 });
 
 init();
+function renderTodaySummary(){
+  const list = document.getElementById("todayList");
+  if(!list) return;
+
+  // Vi läser från today.js om den finns
+  const t = (window.mzLoadToday ? window.mzLoadToday() : null);
+
+  if(!t){
+    list.innerHTML = `<li class="muted">Ingen dagslogg ännu (today.js saknas).</li>`;
+    return;
+  }
+
+  const eq   = t.counts?.eq   || 0;
+  const frac = t.counts?.frac || 0;
+
+  // Tabeller: objekt t.tables = { "3": 6, "6": 2, ... }
+  const tables = t.tables || {};
+  const entries = Object.entries(tables)
+    .filter(([_,n]) => (n || 0) > 0)
+    .sort((a,b) => Number(a[0]) - Number(b[0]));
+
+  let html = "";
+  html += `<li><b>Ekvationer:</b> ${eq}</li>`;
+  html += `<li><b>Bråk↔Decimal:</b> ${frac}</li>`;
+
+  html += `<li style="margin-top:6px;"><b>Tabeller</b></li>`;
+
+  if(entries.length === 0){
+    html += `<li class="muted" style="margin-left:14px;">Inga tabeller ännu idag.</li>`;
+  } else {
+    for(const [table, n] of entries){
+      html += `<li style="margin-left:14px;">• <b>${table}:ans tabell</b>: ${n}</li>`;
+    }
+  }
+
+  list.innerHTML = html;
+}
+document.getElementById("todayRefreshBtn").addEventListener("click", renderTodaySummary);
 
 /* =========================
    KONTRAKT FÖR SPEL-SIDORNA
@@ -1633,5 +1673,6 @@ init();
   Spel-sidorna behöver INTE veta något om lager.
 */
 </script>
+  
 </body>
 </html>
