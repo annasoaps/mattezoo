@@ -179,7 +179,7 @@
     font-weight:800;
   }
 
-  /* NEW: Habitat canvas (slumpad placering) */
+  /* Habitat canvas (slumpad placering) */
   .habitat{
     position:relative;
     height:230px;
@@ -188,7 +188,6 @@
     background:rgba(255,255,255,0.45);
     overflow:hidden;
   }
-  /* valfri “stig runt kanten” */
   .habitat::before{
     content:"";
     position:absolute;
@@ -362,7 +361,23 @@
         <span class="muted">Just nu heter ditt zoo: </span>
         <b id="zooNameText">Mattezoo</b>
       </div>
-      <div class="tiny">
+
+      <!-- NYTT: DAGSSUMMA -->
+      <hr style="margin:12px 0; border:none; border-top:1px dashed rgba(0,0,0,0.12);">
+
+      <b>📅 Idag har jag gjort…</b>
+      <div class="muted" id="todayDateLine" style="margin-top:4px;"></div>
+
+      <div style="margin-top:10px; line-height:1.6;">
+        <div>🧮 Ekvationer: <b id="sumEq">0</b></div>
+        <div>✖️ Multiplikation (varv): <b id="sumMult">0</b></div>
+        <div>➗ Bråk↔Decimal (proffs): <b id="sumFrac">0</b></div>
+        <div style="margin-top:8px;">📌 3:ans tabell (varv): <b id="sumMult3">0</b></div>
+      </div>
+
+      <div class="tiny" id="lastDoneLine" style="margin-top:10px;"></div>
+
+      <div class="tiny" style="margin-top:10px;">
         Tips: När du kommer tillbaka från ett spel kan du klicka “Synka” i affären om du vill uppdatera direkt.
       </div>
     </div>
@@ -437,12 +452,15 @@
 const KEY_STARS   = "mathZooStars";
 const KEY_NAME    = "mathZooName";
 const KEY_UNLOCK  = "mathZooUnlockedZones";
-const KEY_ANIMALS = "mathZooAnimalsByZoneV2"; // V2: djur är objekt med raritet
-const KEY_DECOR   = "mathZooDecorGridByZone"; // array(36) per zon (behålls)
-const KEY_PROG    = "mathZooProgress";        // { mult: n, eq: n }
+const KEY_ANIMALS = "mathZooAnimalsByZoneV2";
+const KEY_DECOR   = "mathZooDecorGridByZone";
+const KEY_PROG    = "mathZooProgress";
 
 /* DAILY */
-const KEY_DAILY   = "mathZooDaily";           // { date, plan:{targets, enabled}, counts, claimed }
+const KEY_DAILY   = "mathZooDaily";
+
+/* TODAY SUMMARY */
+const KEY_TODAY   = "mathZooTodaySummary";
 
 /* =========================
    DATA: ZONER
@@ -511,7 +529,6 @@ const ANIMALS_POOL = {
   }
 };
 
-// Shop blind bag rarity
 const RARITY_CHANCE = [
   { r:"common",   p:0.70 },
   { r:"uncommon", p:0.20 },
@@ -519,7 +536,6 @@ const RARITY_CHANCE = [
   { r:"epic",     p:0.01 }
 ];
 
-// Daily blind bag rarity (garanterat bättre)
 const DAILY_RARITY_CHANCE = [
   { r:"rare",     p:0.70 },
   { r:"epic",     p:0.25 },
@@ -543,13 +559,10 @@ const DECOR_BY_ZONE = {
 let stars = 0;
 let zooName = "Mattezoo";
 
-// upplåsning (börjar med skog)
 let unlocked = { forest:true, savannah:false, ocean:false, ice:false, fantasy:false };
 
-// djur per zon: [{emoji, rarity}]
 let animalsByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[] };
 
-// dekor-grid per zon: array(36) med null eller emoji (behålls i storage)
 let decorGridByZone = {
   forest:   Array(36).fill(null),
   savannah: Array(36).fill(null),
@@ -558,7 +571,6 @@ let decorGridByZone = {
   fantasy:  Array(36).fill(null)
 };
 
-// progress
 let progress = { mult:0, eq:0 };
 
 /* =========================
@@ -579,8 +591,6 @@ function loadState(){
     if(parsed && typeof parsed === "object"){
       unlocked = { ...unlocked, ...parsed };
     }
-  } else {
-    unlocked = { forest:true, savannah:false, ocean:false, ice:false, fantasy:false };
   }
 
   const a = localStorage.getItem(KEY_ANIMALS);
@@ -704,22 +714,18 @@ function randInt(rnd, min, max){
   return Math.floor(rnd() * (max - min + 1)) + min;
 }
 
-// Planen varierar lite: ibland 2 av 3 spel, ibland alla 3, små mål.
-// (Du kan justera intervallen här om du vill.)
 function generateDailyPlan(dateStr){
   const rnd = mulberry32(seedFromString("mattezoo|" + dateStr));
-  const useAll = rnd() < 0.60;          // 60%: alla tre, annars bara två
-  const includeFrac = useAll ? true : (rnd() < 0.50); // om inte alla, 50% chans att bråk är med
+  const useAll = rnd() < 0.60;
+  const includeFrac = useAll ? true : (rnd() < 0.50);
 
-  const eqTarget   = randInt(rnd, 2, 5);   // 2–5 ekvationer
-  const multTarget = randInt(rnd, 2, 5);   // 2–5 multiplikationstabeller (vinster)
-  const fracTarget = includeFrac ? 1 : 0;  // proffs-vinst 1 eller 0
+  const eqTarget   = randInt(rnd, 2, 5);
+  const multTarget = randInt(rnd, 2, 5);
+  const fracTarget = includeFrac ? 1 : 0;
 
-  // Om vi inte kör alla tre: slumpa bort antingen eq eller mult (men inte båda)
   let eqEnabled = true, multEnabled = true, fracEnabled = (fracTarget > 0);
 
   if(!useAll){
-    // bestäm vilken som pausas (eq eller mult) om bråk är med, annars kör eq+mult alltid
     if(fracEnabled){
       if(rnd() < 0.50) eqEnabled = false;
       else multEnabled = false;
@@ -757,12 +763,68 @@ function saveDaily(d){
   localStorage.setItem(KEY_DAILY, JSON.stringify(d));
 }
 
-// Kallas från spelsidorna vid vinst (A-läget)
+/* Export: kallas från spelsidorna (via daily.js eller inline) */
 function mzDailyIncrement(type, amount=1){
   const d = loadDaily();
   if(!d.counts[type] && d.counts[type] !== 0) return;
   d.counts[type] += amount;
   saveDaily(d);
+}
+
+/* =========================
+   TODAY SUMMARY (nollställs varje dag)
+========================= */
+function loadToday(){
+  const t = todayKey();
+  let obj = null;
+  try{ obj = JSON.parse(localStorage.getItem(KEY_TODAY) || "null"); }catch{}
+  if(!obj || obj.date !== t){
+    obj = { date:t, counts:{eq:0,mult:0,frac:0}, tables:{}, lastAt:null };
+    localStorage.setItem(KEY_TODAY, JSON.stringify(obj));
+  }
+  return obj;
+}
+function saveToday(obj){
+  localStorage.setItem(KEY_TODAY, JSON.stringify(obj));
+}
+
+/* Export: kallas från spelsidorna */
+function mzTodayIncrement(type, amount=1, meta=null){
+  const obj = loadToday();
+  if(!obj.counts[type] && obj.counts[type] !== 0) return;
+  obj.counts[type] += amount;
+
+  if(type === "mult" && meta && meta.table){
+    const k = String(meta.table);
+    obj.tables[k] = (obj.tables[k] || 0) + amount;
+  }
+
+  obj.lastAt = Date.now();
+  saveToday(obj);
+}
+
+function updateTodayUI(){
+  const obj = loadToday();
+  const dateLine = document.getElementById("todayDateLine");
+  if(dateLine) dateLine.textContent = obj.date;
+
+  const eqEl = document.getElementById("sumEq");
+  const multEl = document.getElementById("sumMult");
+  const fracEl = document.getElementById("sumFrac");
+  const mult3El = document.getElementById("sumMult3");
+  const lastEl = document.getElementById("lastDoneLine");
+
+  if(eqEl) eqEl.textContent = String(obj.counts.eq || 0);
+  if(multEl) multEl.textContent = String(obj.counts.mult || 0);
+  if(fracEl) fracEl.textContent = String(obj.counts.frac || 0);
+
+  const mult3 = (obj.tables && obj.tables["3"]) ? obj.tables["3"] : 0;
+  if(mult3El) mult3El.textContent = String(mult3);
+
+  const last = obj.lastAt ? new Date(obj.lastAt).toLocaleTimeString("sv-SE",{hour:"2-digit", minute:"2-digit"}) : null;
+  if(lastEl){
+    lastEl.textContent = last ? `Senast registrerat: ${last}` : `Inget registrerat ännu idag.`;
+  }
 }
 
 function updateDailyUI(){
@@ -773,7 +835,6 @@ function updateDailyUI(){
   const tg = d.plan.targets;
   const c  = d.counts;
 
-  // Labels + mål
   document.getElementById("dailyLabelEq").textContent   = en.eq   ? "Ekvationer:" : "Ekvationer: (inte idag)";
   document.getElementById("dailyLabelMult").textContent = en.mult ? "Multiplikation:" : "Multiplikation: (inte idag)";
   document.getElementById("dailyLabelFrac").textContent = en.frac ? "Bråk↔Decimal (proffs):" : "Bråk↔Decimal: (inte idag)";
@@ -839,20 +900,16 @@ function openDailyBlindBag(){
 
   if(!allDone || d.claimed) return;
 
-  // Belöning går till första upplåsta zonen (oftast skog, men funkar om de låst upp fler)
   const zoneKey = firstUnlockedZone();
 
-  // Garanti: minst rare
   const rarity = rollFromChanceTable(DAILY_RARITY_CHANCE);
 
-  // Välj emoji från zonens pool: om "legendary" finns inte i pool, använd epic som “legendary”-källa
   let pool = ANIMALS_POOL[zoneKey]?.[rarity];
   if(!pool || pool.length === 0){
     pool = ANIMALS_POOL[zoneKey]?.epic || ANIMALS_POOL[zoneKey]?.rare || ANIMALS_POOL[zoneKey]?.common || ["🐾"];
   }
   const emoji = pickFrom(pool);
 
-  // Vi sparar "legendary" som rarity även om det “lånar” epic-pool, så det syns som special.
   animalsByZone[zoneKey].push({ emoji, rarity: (rarity === "legendary" ? "epic" : rarity) });
 
   d.claimed = true;
@@ -870,7 +927,7 @@ function openDailyBlindBag(){
 document.getElementById("dailyClaimBtn").addEventListener("click", openDailyBlindBag);
 
 /* =========================
-   ZOO RENDER (NY)
+   ZOO RENDER
 ========================= */
 function renderZoneSelect(){
   const sel = document.getElementById("zoneSelect");
@@ -889,7 +946,6 @@ function rarityClass(r){
   return "rar-common";
 }
 
-// Gör deterministisk slump per zon + dagens datum så det ser “stabilt” ut under dagen
 function zonedRng(zoneKey){
   const seed = seedFromString("zoo|" + todayKey() + "|" + zoneKey);
   return mulberry32(seed);
@@ -910,10 +966,7 @@ function renderHabitat(zoneKey){
 
   const rnd = zonedRng(zoneKey);
 
-  // Samla djur
   const animals = (animalsByZone[zoneKey] || []).map(obj => ({ type:"animal", ...obj }));
-
-  // Samla dekor (från grid-arrayen men nu visas som spritt)
   const decorArr = decorGridByZone[zoneKey] || Array(36).fill(null);
   const decor = decorArr.filter(x => x !== null).map(em => ({ type:"decor", emoji: em }));
 
@@ -928,19 +981,16 @@ function renderHabitat(zoneKey){
     return hab;
   }
 
-  // Begränsa antalet som ritas så det inte blir för “kladdigt”
-  // (Sakerna finns ändå sparade.)
   const maxRender = 28;
   const toRender = things.slice(0, maxRender);
 
-  toRender.forEach((t, i) => {
+  toRender.forEach((t) => {
     const el = document.createElement("div");
     el.className = "zThing";
     el.textContent = t.emoji;
 
-    // sprid i yta, undvik precis kanten
-    const x = 10 + rnd()*80; // %
-    const y = 12 + rnd()*74; // %
+    const x = 10 + rnd()*80;
+    const y = 12 + rnd()*74;
 
     el.style.left = x + "%";
     el.style.top  = y + "%";
@@ -949,7 +999,6 @@ function renderHabitat(zoneKey){
     el.style.fontSize = size + "px";
 
     if(t.type === "animal"){
-      // liten glow runt djur beroende på rarity
       el.style.padding = "2px 6px";
       el.style.borderRadius = "12px";
       el.classList.add(rarityClass(t.rarity));
@@ -1154,7 +1203,6 @@ function buyAnimal(zoneKey, emoji, rarity){
   setToast(`Du köpte ${emoji} till ${ZONES.find(z=>z.key===zoneKey).name}!`);
 }
 
-// Vi behåller grid-logiken i storage (36 rutor), men nu visas det “spritt” i habitatet.
 function placeDecorInGrid(zoneKey, emoji){
   const grid = decorGridByZone[zoneKey] || Array(36).fill(null);
 
@@ -1185,15 +1233,11 @@ function buyDecor(zoneKey, emoji){
   setToast(`Dekoration ${emoji} placerades i ${ZONES.find(z=>z.key===zoneKey).name}!`);
 }
 
-function rollRarity(){
-  return rollFromChanceTable(RARITY_CHANCE);
-}
-
 function buyBlindBag(zoneKey){
   if(stars < PRICES.blind) return;
   stars -= PRICES.blind;
 
-  const rarity = rollRarity();
+  const rarity = rollFromChanceTable(RARITY_CHANCE);
   const pool = ANIMALS_POOL[zoneKey]?.[rarity] || ANIMALS_POOL[zoneKey]?.common || ["🐾"];
   const emoji = pickFrom(pool);
 
@@ -1218,6 +1262,7 @@ function init(){
   renderZoo();
   renderShop();
   updateDailyUI();
+  updateTodayUI();
 }
 
 document.getElementById("saveNameBtn").addEventListener("click", () => {
@@ -1237,7 +1282,7 @@ document.getElementById("syncBtn").addEventListener("click", () => {
 });
 
 document.getElementById("resetBtn").addEventListener("click", () => {
-  if(!confirm("Vill du nollställa allt? (stjärnor, djur, dekorationer, upplåsning, uppdrag, daily)")) return;
+  if(!confirm("Vill du nollställa allt? (stjärnor, djur, dekorationer, upplåsning, uppdrag, daily, idag)")) return;
   localStorage.removeItem(KEY_STARS);
   localStorage.removeItem(KEY_NAME);
   localStorage.removeItem(KEY_UNLOCK);
@@ -1245,6 +1290,7 @@ document.getElementById("resetBtn").addEventListener("click", () => {
   localStorage.removeItem(KEY_DECOR);
   localStorage.removeItem(KEY_PROG);
   localStorage.removeItem(KEY_DAILY);
+  localStorage.removeItem(KEY_TODAY);
   init();
   setToast("Allt är nollställt.");
 });
@@ -1252,39 +1298,21 @@ document.getElementById("resetBtn").addEventListener("click", () => {
 init();
 
 /* =========================
-   KONTRAKT FÖR SPEL-SIDORNA
+   KONTRAKT FÖR SPEL-SIDORNA (kort version)
 ========================= */
 /*
-  I spel-sidorna ska du uppdatera två saker vid "vinst" (A-läget):
+  Vid vinst i spel-sidorna:
 
-  A) Stjärnor (om spelet ger stjärnor):
-     let s = parseInt(localStorage.getItem("mathZooStars") || "0", 10);
-     s += 1; // eller 2 etc
-     localStorage.setItem("mathZooStars", JSON.stringify(s));
+  1) Daily quest:
+     mzDailyIncrement("eq"|"mult"|"frac", 1);
 
-  B) Upplåsningsräknare (mathZooProgress) + Dagens uppdrag (mathZooDaily)
-     -- Multiplikation, när en tabell blir "klar" (3 omgångar):
-        let p = JSON.parse(localStorage.getItem("mathZooProgress") || "{}");
-        p.mult = (p.mult || 0) + 1;
-        localStorage.setItem("mathZooProgress", JSON.stringify(p));
+  2) Dagens sammanfattning:
+     mzTodayIncrement("eq", 1);
+     mzTodayIncrement("frac", 1);
+     mzTodayIncrement("mult", 1, { table: currentTable }); // ger även 3:an-räknaren
 
-        // Daily (typ=mult):
-        // (lägg in hjälpfunktionerna todayKey/loadDaily/saveDaily/mzDailyIncrement i spelsidan)
-        mzDailyIncrement("mult", 1);
-
-     -- Ekvationer, när en ekvation är löst:
-        let p = JSON.parse(localStorage.getItem("mathZooProgress") || "{}");
-        p.eq = (p.eq || 0) + 1;
-        localStorage.setItem("mathZooProgress", JSON.stringify(p));
-
-        mzDailyIncrement("eq", 1);
-
-     -- Bråk/Decimal, proffsläge, när de klarar utan fel:
-        mzDailyIncrement("frac", 1);
-
-  OBS: För att mzDailyIncrement ska finnas i spel-sidorna behöver du kopiera in
-  daily-funktionerna (todayKey, seedFromString, mulberry32, generateDailyPlan, loadDaily, saveDaily, mzDailyIncrement)
-  i varje spel-HTML, eller lägga dem i en gemensam fil (t.ex. daily.js) som alla sidor laddar.
+  OBS: För att dessa ska finnas i spel-sidorna behöver du lägga dem i daily.js
+  (rekommenderat) eller kopiera in funktionerna där.
 */
 </script>
 </body>
