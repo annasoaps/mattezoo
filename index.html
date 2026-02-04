@@ -161,7 +161,7 @@
     border:2px solid rgba(0,0,0,0.08);
     overflow:hidden;
     position:relative;
-    min-height:320px;
+    min-height:360px;
   }
   .zoneHeader{
     display:flex;
@@ -170,6 +170,8 @@
     padding:10px 10px 8px;
     font-weight:900;
     font-size:14px;
+    gap:10px;
+    flex-wrap:wrap;
   }
   .zoneBody{padding:10px;}
   .zoneSub{
@@ -179,7 +181,7 @@
     font-weight:800;
   }
 
-  /* Habitat canvas (slumpad placering) */
+  /* NEW: Habitat canvas (slumpad placering) */
   .habitat{
     position:relative;
     height:230px;
@@ -188,6 +190,7 @@
     background:rgba(255,255,255,0.45);
     overflow:hidden;
   }
+  /* valfri “stig runt kanten” */
   .habitat::before{
     content:"";
     position:absolute;
@@ -203,6 +206,36 @@
     filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15));
     line-height:1;
     white-space:nowrap;
+  }
+
+  /* Zone counts + storage button */
+  .zoneMeta{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    font-size:12px;
+    color:#345;
+    font-weight:900;
+  }
+  .zoneMeta .pillMini{
+    background:rgba(255,255,255,0.6);
+    border:1px solid rgba(0,0,0,0.06);
+    border-radius:999px;
+    padding:4px 8px;
+  }
+  .zoneMeta button{
+    border:none;
+    background:#fff;
+    border:1px solid rgba(0,0,0,0.12);
+    border-radius:10px;
+    padding:6px 10px;
+    cursor:pointer;
+    font-weight:900;
+  }
+  .zoneMeta button:hover{
+    box-shadow:0 4px 12px rgba(0,0,0,0.10);
+    transform:translateY(-1px);
   }
 
   /* Rarity glow */
@@ -290,9 +323,119 @@
     margin-top:10px;
   }
   code{background:#f5f5f5; padding:1px 6px; border-radius:8px;}
+
+  /* ===== Storage modal ===== */
+  #storageModal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.55);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:14px;
+    z-index:9999;
+  }
+  #storageCard{
+    width:min(980px, 96vw);
+    max-height:90vh;
+    overflow:auto;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 16px 50px rgba(0,0,0,0.35);
+    border-top:6px solid #4CAF50;
+    padding:14px;
+  }
+  #storageHeader{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+  }
+  #storageTitle{
+    font-weight:900;
+    color:#2e7d32;
+    font-size:18px;
+  }
+  #storageClose{
+    border:none;
+    background:#546e7a;
+    color:#fff;
+    border-radius:10px;
+    padding:8px 10px;
+    cursor:pointer;
+    font-weight:900;
+  }
+  #storageClose:hover{ background:#455a64; }
+  .storageGrid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  @media (max-width:760px){
+    .storageGrid{ grid-template-columns:1fr; }
+  }
+  .storagePanel{
+    border:1px solid #e6e6e6;
+    border-radius:12px;
+    padding:12px;
+    background:#fafafa;
+  }
+  .storagePanel h3{
+    margin:0 0 8px;
+    font-size:14px;
+    color:#334;
+  }
+  .storageHint{
+    font-size:12px;
+    color:#556;
+    margin:0 0 8px;
+    line-height:1.35;
+  }
+  .tiles{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .aTile{
+    width:46px;
+    height:46px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:12px;
+    font-size:24px;
+    background:rgba(255,255,255,0.75);
+    border:1px solid rgba(255,255,255,0.95);
+    cursor:pointer;
+    user-select:none;
+  }
+  .aTile:hover{
+    box-shadow:0 6px 16px rgba(0,0,0,0.12);
+    transform:translateY(-1px);
+  }
+  .emptyText{
+    font-size:13px;
+    color:#667;
+    font-weight:800;
+    padding:8px 0;
+  }
+  .storageFooter{
+    margin-top:10px;
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    font-size:12px;
+    color:#556;
+    font-weight:800;
+  }
 </style>
 </head>
 <body>
+
 <div id="app">
   <div id="starPill"><span>⭐</span> <span id="starsText">0</span></div>
 
@@ -361,23 +504,7 @@
         <span class="muted">Just nu heter ditt zoo: </span>
         <b id="zooNameText">Mattezoo</b>
       </div>
-
-      <!-- NYTT: DAGSSUMMA -->
-      <hr style="margin:12px 0; border:none; border-top:1px dashed rgba(0,0,0,0.12);">
-
-      <b>📅 Idag har jag gjort…</b>
-      <div class="muted" id="todayDateLine" style="margin-top:4px;"></div>
-
-      <div style="margin-top:10px; line-height:1.6;">
-        <div>🧮 Ekvationer: <b id="sumEq">0</b></div>
-        <div>✖️ Multiplikation (varv): <b id="sumMult">0</b></div>
-        <div>➗ Bråk↔Decimal (proffs): <b id="sumFrac">0</b></div>
-        <div style="margin-top:8px;">📌 3:ans tabell (varv): <b id="sumMult3">0</b></div>
-      </div>
-
-      <div class="tiny" id="lastDoneLine" style="margin-top:10px;"></div>
-
-      <div class="tiny" style="margin-top:10px;">
+      <div class="tiny">
         Tips: När du kommer tillbaka från ett spel kan du klicka “Synka” i affären om du vill uppdatera direkt.
       </div>
     </div>
@@ -387,6 +514,7 @@
     <h2 style="margin:0 0 6px;">🐾 Ditt zoo</h2>
     <div class="muted">
       Här syns djur och dekorationer utspridda i varje habitat.
+      <br><b>Ny grej:</b> Varje zon har en <b>Hage</b> (max) + ett <b>Lager</b> för extra djur.
     </div>
     <div id="zooGrid"></div>
   </div>
@@ -429,6 +557,7 @@
           <li>Blind bag ger ett slumpdjur med olika raritet.</li>
           <li>Dekorationer placeras automatiskt och syns utspritt i habitatet.</li>
           <li>Dagens uppdrag ger en <b>gratis Daily Blind Bag</b> med bättre raritet 🎁</li>
+          <li>Om en hage blir full hamnar nya djur i <b>Lager</b> automatiskt.</li>
         </ul>
 
         <div style="margin-top:12px;">
@@ -445,6 +574,43 @@
   </div>
 </div>
 
+<!-- STORAGE MODAL -->
+<div id="storageModal" role="dialog" aria-modal="true">
+  <div id="storageCard">
+    <div id="storageHeader">
+      <div id="storageTitle">Lager</div>
+      <button id="storageClose">Stäng</button>
+    </div>
+
+    <div class="storageGrid">
+      <div class="storagePanel">
+        <h3>🏡 Hage (visas i habitatet)</h3>
+        <p class="storageHint">
+          Klicka på ett djur för att <b>parkera</b> det i lagret.
+          <br>Hagen har en maxgräns, så att det alltid ser snyggt ut.
+        </p>
+        <div id="penTiles" class="tiles"></div>
+        <div id="penEmpty" class="emptyText" style="display:none;">Inga djur i hagen.</div>
+      </div>
+
+      <div class="storagePanel">
+        <h3>🧺 Lager (extra djur)</h3>
+        <p class="storageHint">
+          Klicka på ett djur för att <b>flytta till hagen</b>.
+          <br>Om hagen är full får du parkera något först.
+        </p>
+        <div id="storeTiles" class="tiles"></div>
+        <div id="storeEmpty" class="emptyText" style="display:none;">Lagret är tomt.</div>
+      </div>
+    </div>
+
+    <div class="storageFooter">
+      <div id="storageInfo"></div>
+      <div>Tips: “Synka” om du vill ladda om allt efter ett spel.</div>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =========================
    STORAGE NYCKLAR
@@ -452,15 +618,15 @@
 const KEY_STARS   = "mathZooStars";
 const KEY_NAME    = "mathZooName";
 const KEY_UNLOCK  = "mathZooUnlockedZones";
-const KEY_ANIMALS = "mathZooAnimalsByZoneV2";
-const KEY_DECOR   = "mathZooDecorGridByZone";
-const KEY_PROG    = "mathZooProgress";
+const KEY_ANIMALS = "mathZooAnimalsByZoneV2"; // V2: djur är objekt med raritet
+const KEY_DECOR   = "mathZooDecorGridByZone"; // array(36) per zon (behålls)
+const KEY_PROG    = "mathZooProgress";        // { mult: n, eq: n }
+
+/* NEW: storage/parkering */
+const KEY_STORAGE = "mathZooAnimalStorageByZoneV1";
 
 /* DAILY */
-const KEY_DAILY   = "mathZooDaily";
-
-/* TODAY SUMMARY */
-const KEY_TODAY   = "mathZooTodaySummary";
+const KEY_DAILY   = "mathZooDaily";           // { date, plan:{targets, enabled}, counts, claimed }
 
 /* =========================
    DATA: ZONER
@@ -492,6 +658,11 @@ const PRICES = {
   blind: 4,
   unlock: 10
 };
+
+/* =========================
+   HAGE/LAGER SETTINGS
+========================= */
+const PEN_MAX = 24; // max djur som får ligga i hagen per zon
 
 /* =========================
    DJURPOOLER + RARITET
@@ -529,6 +700,7 @@ const ANIMALS_POOL = {
   }
 };
 
+// Shop blind bag rarity
 const RARITY_CHANCE = [
   { r:"common",   p:0.70 },
   { r:"uncommon", p:0.20 },
@@ -536,6 +708,7 @@ const RARITY_CHANCE = [
   { r:"epic",     p:0.01 }
 ];
 
+// Daily blind bag rarity (garanterat bättre)
 const DAILY_RARITY_CHANCE = [
   { r:"rare",     p:0.70 },
   { r:"epic",     p:0.25 },
@@ -559,10 +732,16 @@ const DECOR_BY_ZONE = {
 let stars = 0;
 let zooName = "Mattezoo";
 
+// upplåsning (börjar med skog)
 let unlocked = { forest:true, savannah:false, ocean:false, ice:false, fantasy:false };
 
+// djur i HAGE per zon: [{emoji, rarity}]
 let animalsByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[] };
 
+// djur i LAGER per zon: [{emoji, rarity}]
+let storageByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[] };
+
+// dekor-grid per zon: array(36) med null eller emoji (behålls i storage)
 let decorGridByZone = {
   forest:   Array(36).fill(null),
   savannah: Array(36).fill(null),
@@ -571,6 +750,7 @@ let decorGridByZone = {
   fantasy:  Array(36).fill(null)
 };
 
+// progress
 let progress = { mult:0, eq:0 };
 
 /* =========================
@@ -579,6 +759,17 @@ let progress = { mult:0, eq:0 };
 function safeParse(json, fallback){
   try{ return JSON.parse(json); }catch{ return fallback; }
 }
+
+function normalizeZonesObj(obj, fallbackFactory){
+  const out = fallbackFactory();
+  if(obj && typeof obj === "object"){
+    for(const z of ZONES){
+      if(Array.isArray(obj[z.key])) out[z.key] = obj[z.key];
+    }
+  }
+  return out;
+}
+
 function loadState(){
   stars = parseInt(localStorage.getItem(KEY_STARS) || "0", 10);
 
@@ -591,20 +782,20 @@ function loadState(){
     if(parsed && typeof parsed === "object"){
       unlocked = { ...unlocked, ...parsed };
     }
+  } else {
+    unlocked = { forest:true, savannah:false, ocean:false, ice:false, fantasy:false };
   }
 
   const a = localStorage.getItem(KEY_ANIMALS);
   if(a){
     const parsed = safeParse(a, null);
-    if(parsed && typeof parsed === "object"){
-      animalsByZone = {
-        forest: parsed.forest || [],
-        savannah: parsed.savannah || [],
-        ocean: parsed.ocean || [],
-        ice: parsed.ice || [],
-        fantasy: parsed.fantasy || []
-      };
-    }
+    animalsByZone = normalizeZonesObj(parsed, ()=>({ forest:[], savannah:[], ocean:[], ice:[], fantasy:[] }));
+  }
+
+  const st = localStorage.getItem(KEY_STORAGE);
+  if(st){
+    const parsed = safeParse(st, null);
+    storageByZone = normalizeZonesObj(parsed, ()=>({ forest:[], savannah:[], ocean:[], ice:[], fantasy:[] }));
   }
 
   const d = localStorage.getItem(KEY_DECOR);
@@ -625,6 +816,11 @@ function loadState(){
       progress = { mult: parsed.mult || 0, eq: parsed.eq || 0 };
     }
   }
+
+  // Säkerställ att inget ligger "över max" i hagen: flytta överskott till lager
+  for(const z of ZONES){
+    enforcePenLimit(z.key);
+  }
 }
 
 function saveState(){
@@ -632,6 +828,7 @@ function saveState(){
   localStorage.setItem(KEY_NAME, zooName);
   localStorage.setItem(KEY_UNLOCK, JSON.stringify(unlocked));
   localStorage.setItem(KEY_ANIMALS, JSON.stringify(animalsByZone));
+  localStorage.setItem(KEY_STORAGE, JSON.stringify(storageByZone));
   localStorage.setItem(KEY_DECOR, JSON.stringify(decorGridByZone));
   localStorage.setItem(KEY_PROG, JSON.stringify(progress));
 }
@@ -654,6 +851,35 @@ function updateNameUI(){
 function updateProgressUI(){
   document.getElementById("progMult").textContent = String(progress.mult || 0);
   document.getElementById("progEq").textContent = String(progress.eq || 0);
+}
+
+/* =========================
+   HAGE/LAGER LOGIK
+========================= */
+function ensureZoneArrays(zoneKey){
+  if(!Array.isArray(animalsByZone[zoneKey])) animalsByZone[zoneKey] = [];
+  if(!Array.isArray(storageByZone[zoneKey])) storageByZone[zoneKey] = [];
+}
+
+// Flytta överskott från hage -> lager om någon har "för många"
+function enforcePenLimit(zoneKey){
+  ensureZoneArrays(zoneKey);
+  while(animalsByZone[zoneKey].length > PEN_MAX){
+    const moved = animalsByZone[zoneKey].pop(); // flytta senaste till lager
+    storageByZone[zoneKey].push(moved);
+  }
+}
+
+// Lägg till djur: om hagen är full, parkera i lager automatiskt
+function addAnimalToZone(zoneKey, obj){
+  ensureZoneArrays(zoneKey);
+  if(animalsByZone[zoneKey].length < PEN_MAX){
+    animalsByZone[zoneKey].push(obj);
+    return { placed:"pen" };
+  } else {
+    storageByZone[zoneKey].push(obj);
+    return { placed:"storage" };
+  }
 }
 
 /* =========================
@@ -713,7 +939,6 @@ function mulberry32(seed){
 function randInt(rnd, min, max){
   return Math.floor(rnd() * (max - min + 1)) + min;
 }
-
 function generateDailyPlan(dateStr){
   const rnd = mulberry32(seedFromString("mattezoo|" + dateStr));
   const useAll = rnd() < 0.60;
@@ -741,7 +966,6 @@ function generateDailyPlan(dateStr){
     }
   };
 }
-
 function loadDaily(){
   let d = null;
   try{ d = JSON.parse(localStorage.getItem(KEY_DAILY) || "null"); }catch{}
@@ -762,71 +986,12 @@ function loadDaily(){
 function saveDaily(d){
   localStorage.setItem(KEY_DAILY, JSON.stringify(d));
 }
-
-/* Export: kallas från spelsidorna (via daily.js eller inline) */
 function mzDailyIncrement(type, amount=1){
   const d = loadDaily();
   if(!d.counts[type] && d.counts[type] !== 0) return;
   d.counts[type] += amount;
   saveDaily(d);
 }
-
-/* =========================
-   TODAY SUMMARY (nollställs varje dag)
-========================= */
-function loadToday(){
-  const t = todayKey();
-  let obj = null;
-  try{ obj = JSON.parse(localStorage.getItem(KEY_TODAY) || "null"); }catch{}
-  if(!obj || obj.date !== t){
-    obj = { date:t, counts:{eq:0,mult:0,frac:0}, tables:{}, lastAt:null };
-    localStorage.setItem(KEY_TODAY, JSON.stringify(obj));
-  }
-  return obj;
-}
-function saveToday(obj){
-  localStorage.setItem(KEY_TODAY, JSON.stringify(obj));
-}
-
-/* Export: kallas från spelsidorna */
-function mzTodayIncrement(type, amount=1, meta=null){
-  const obj = loadToday();
-  if(!obj.counts[type] && obj.counts[type] !== 0) return;
-  obj.counts[type] += amount;
-
-  if(type === "mult" && meta && meta.table){
-    const k = String(meta.table);
-    obj.tables[k] = (obj.tables[k] || 0) + amount;
-  }
-
-  obj.lastAt = Date.now();
-  saveToday(obj);
-}
-
-function updateTodayUI(){
-  const obj = loadToday();
-  const dateLine = document.getElementById("todayDateLine");
-  if(dateLine) dateLine.textContent = obj.date;
-
-  const eqEl = document.getElementById("sumEq");
-  const multEl = document.getElementById("sumMult");
-  const fracEl = document.getElementById("sumFrac");
-  const mult3El = document.getElementById("sumMult3");
-  const lastEl = document.getElementById("lastDoneLine");
-
-  if(eqEl) eqEl.textContent = String(obj.counts.eq || 0);
-  if(multEl) multEl.textContent = String(obj.counts.mult || 0);
-  if(fracEl) fracEl.textContent = String(obj.counts.frac || 0);
-
-  const mult3 = (obj.tables && obj.tables["3"]) ? obj.tables["3"] : 0;
-  if(mult3El) mult3El.textContent = String(mult3);
-
-  const last = obj.lastAt ? new Date(obj.lastAt).toLocaleTimeString("sv-SE",{hour:"2-digit", minute:"2-digit"}) : null;
-  if(lastEl){
-    lastEl.textContent = last ? `Senast registrerat: ${last}` : `Inget registrerat ännu idag.`;
-  }
-}
-
 function updateDailyUI(){
   const d = loadDaily();
   document.getElementById("dailyDateText").textContent = d.date;
@@ -910,7 +1075,8 @@ function openDailyBlindBag(){
   }
   const emoji = pickFrom(pool);
 
-  animalsByZone[zoneKey].push({ emoji, rarity: (rarity === "legendary" ? "epic" : rarity) });
+  const storedObj = { emoji, rarity: (rarity === "legendary" ? "epic" : rarity) };
+  const placed = addAnimalToZone(zoneKey, storedObj);
 
   d.claimed = true;
   saveDaily(d);
@@ -921,13 +1087,16 @@ function openDailyBlindBag(){
   renderShop();
   updateDailyUI();
 
-  alert(`🎁 Daily Blind Bag!\nDu fick: ${emoji}\nRarity: ${rarity.toUpperCase()}\n(Lades i ${ZONES.find(z=>z.key===zoneKey).name})`);
+  const zoneName = ZONES.find(z=>z.key===zoneKey).name;
+  const where = placed.placed === "storage" ? "LAGER" : "HAGE";
+
+  alert(`🎁 Daily Blind Bag!\nDu fick: ${emoji}\nRarity: ${rarity.toUpperCase()}\nLades i ${zoneName} (${where}).`);
 }
 
 document.getElementById("dailyClaimBtn").addEventListener("click", openDailyBlindBag);
 
 /* =========================
-   ZOO RENDER
+   ZOO RENDER (NY)
 ========================= */
 function renderZoneSelect(){
   const sel = document.getElementById("zoneSelect");
@@ -946,6 +1115,7 @@ function rarityClass(r){
   return "rar-common";
 }
 
+// deterministisk slump per zon + dagens datum
 function zonedRng(zoneKey){
   const seed = seedFromString("zoo|" + todayKey() + "|" + zoneKey);
   return mulberry32(seed);
@@ -981,6 +1151,7 @@ function renderHabitat(zoneKey){
     return hab;
   }
 
+  // rita max, men djuren är ändå "hanterade" via hage/lager
   const maxRender = 28;
   const toRender = things.slice(0, maxRender);
 
@@ -1020,12 +1191,47 @@ function renderZoo(){
   zooGrid.innerHTML = "";
 
   for(const z of ZONES){
+    ensureZoneArrays(z.key);
+
     const zoneDiv = document.createElement("div");
     zoneDiv.className = `zone ${z.cls}`;
 
     const head = document.createElement("div");
     head.className = "zoneHeader";
-    head.innerHTML = `<div>${z.icon} ${z.name}</div><div>${unlocked[z.key] ? "🔓" : "🔒"}</div>`;
+
+    const left = document.createElement("div");
+    left.innerHTML = `<div>${z.icon} ${z.name}</div>`;
+
+    const meta = document.createElement("div");
+    meta.className = "zoneMeta";
+
+    const penCount = animalsByZone[z.key]?.length || 0;
+    const storeCount = storageByZone[z.key]?.length || 0;
+
+    const pill1 = document.createElement("div");
+    pill1.className = "pillMini";
+    pill1.textContent = `🏡 Hage: ${penCount}/${PEN_MAX}`;
+
+    const pill2 = document.createElement("div");
+    pill2.className = "pillMini";
+    pill2.textContent = `🧺 Lager: ${storeCount}`;
+
+    const lock = document.createElement("div");
+    lock.className = "pillMini";
+    lock.textContent = unlocked[z.key] ? "🔓" : "🔒";
+
+    const storageBtn = document.createElement("button");
+    storageBtn.textContent = "Lager";
+    storageBtn.disabled = !unlocked[z.key]; // bara om upplåst
+    storageBtn.onclick = () => openStorageModal(z.key);
+
+    meta.appendChild(pill1);
+    meta.appendChild(pill2);
+    meta.appendChild(storageBtn);
+    meta.appendChild(lock);
+
+    head.appendChild(left);
+    head.appendChild(meta);
 
     const body = document.createElement("div");
     body.className = "zoneBody";
@@ -1075,6 +1281,102 @@ function renderZoo(){
 }
 
 /* =========================
+   STORAGE MODAL LOGIK
+========================= */
+let activeStorageZone = null;
+
+function zoneName(zoneKey){
+  return ZONES.find(z=>z.key===zoneKey)?.name || zoneKey;
+}
+
+function openStorageModal(zoneKey){
+  activeStorageZone = zoneKey;
+  renderStorageModal();
+  document.getElementById("storageModal").style.display = "flex";
+}
+
+function closeStorageModal(){
+  document.getElementById("storageModal").style.display = "none";
+  activeStorageZone = null;
+}
+
+document.getElementById("storageClose").addEventListener("click", closeStorageModal);
+document.getElementById("storageModal").addEventListener("click", (e)=>{
+  if(e.target.id === "storageModal") closeStorageModal();
+});
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "Escape"){
+    const m = document.getElementById("storageModal");
+    if(m.style.display === "flex") closeStorageModal();
+  }
+});
+
+function renderStorageModal(){
+  if(!activeStorageZone) return;
+
+  ensureZoneArrays(activeStorageZone);
+  enforcePenLimit(activeStorageZone);
+
+  const pen = animalsByZone[activeStorageZone];
+  const store = storageByZone[activeStorageZone];
+
+  const title = document.getElementById("storageTitle");
+  title.textContent = `🧺 Lager: ${zoneName(activeStorageZone)}`;
+
+  const info = document.getElementById("storageInfo");
+  info.textContent = `Hage: ${pen.length}/${PEN_MAX} | Lager: ${store.length}`;
+
+  const penTiles = document.getElementById("penTiles");
+  const storeTiles = document.getElementById("storeTiles");
+  penTiles.innerHTML = "";
+  storeTiles.innerHTML = "";
+
+  const penEmpty = document.getElementById("penEmpty");
+  const storeEmpty = document.getElementById("storeEmpty");
+  penEmpty.style.display = pen.length === 0 ? "block" : "none";
+  storeEmpty.style.display = store.length === 0 ? "block" : "none";
+
+  // HAGE: klick -> parkera i lager
+  pen.forEach((obj, idx)=>{
+    const t = document.createElement("div");
+    t.className = `aTile ${rarityClass(obj.rarity)}`;
+    t.title = `Parkera (${(obj.rarity||"common").toUpperCase()})`;
+    t.textContent = obj.emoji;
+    t.addEventListener("click", ()=>{
+      // flytta pen -> store
+      const moved = pen.splice(idx, 1)[0];
+      store.push(moved);
+      saveState();
+      renderStorageModal();
+      renderZoo();
+      renderShop();
+    });
+    penTiles.appendChild(t);
+  });
+
+  // LAGER: klick -> flytta till hage (om plats)
+  store.forEach((obj, idx)=>{
+    const t = document.createElement("div");
+    t.className = `aTile ${rarityClass(obj.rarity)}`;
+    t.title = `Flytta till hage (${(obj.rarity||"common").toUpperCase()})`;
+    t.textContent = obj.emoji;
+    t.addEventListener("click", ()=>{
+      if(pen.length >= PEN_MAX){
+        alert("Hagen är full. Parkera något i lagret först 🙂");
+        return;
+      }
+      const moved = store.splice(idx, 1)[0];
+      pen.push(moved);
+      saveState();
+      renderStorageModal();
+      renderZoo();
+      renderShop();
+    });
+    storeTiles.appendChild(t);
+  });
+}
+
+/* =========================
    SHOP
 ========================= */
 function renderShop(){
@@ -1086,7 +1388,7 @@ function renderShop(){
   setToast("");
 
   if(mode === "animals"){
-    note.innerHTML = `Pris: <b>${PRICES.animal} ⭐</b> per djur.`;
+    note.innerHTML = `Pris: <b>${PRICES.animal} ⭐</b> per djur. (Om hagen är full hamnar djuret i lager.)`;
   } else if(mode === "decor"){
     note.innerHTML = `Pris: <b>${PRICES.decor} ⭐</b> per dekoration (slumpas in i habitatet).`;
   } else if(mode === "blind"){
@@ -1195,14 +1497,19 @@ function renderShop(){
 function buyAnimal(zoneKey, emoji, rarity){
   if(stars < PRICES.animal) return;
   stars -= PRICES.animal;
-  animalsByZone[zoneKey].push({ emoji, rarity: rarity || "common" });
+
+  const placed = addAnimalToZone(zoneKey, { emoji, rarity: rarity || "common" });
+
   saveState();
   updateStarsUI();
   renderZoo();
   renderShop();
-  setToast(`Du köpte ${emoji} till ${ZONES.find(z=>z.key===zoneKey).name}!`);
+
+  const where = placed.placed === "storage" ? " (hamnade i LAGER eftersom hagen är full)" : "";
+  setToast(`Du köpte ${emoji} till ${ZONES.find(z=>z.key===zoneKey).name}!${where}`);
 }
 
+// grid-logik för dekor (36 rutor) men visas spritt
 function placeDecorInGrid(zoneKey, emoji){
   const grid = decorGridByZone[zoneKey] || Array(36).fill(null);
 
@@ -1241,13 +1548,15 @@ function buyBlindBag(zoneKey){
   const pool = ANIMALS_POOL[zoneKey]?.[rarity] || ANIMALS_POOL[zoneKey]?.common || ["🐾"];
   const emoji = pickFrom(pool);
 
-  animalsByZone[zoneKey].push({ emoji, rarity });
+  const placed = addAnimalToZone(zoneKey, { emoji, rarity });
 
   saveState();
   updateStarsUI();
   renderZoo();
   renderShop();
-  setToast(`🎁 Blind Bag! Du fick: ${emoji} (${rarity.toUpperCase()})`);
+
+  const where = placed.placed === "storage" ? " (LAGER)" : " (HAGE)";
+  setToast(`🎁 Blind Bag! Du fick: ${emoji} (${rarity.toUpperCase()})${where}`);
 }
 
 /* =========================
@@ -1262,7 +1571,6 @@ function init(){
   renderZoo();
   renderShop();
   updateDailyUI();
-  updateTodayUI();
 }
 
 document.getElementById("saveNameBtn").addEventListener("click", () => {
@@ -1282,15 +1590,15 @@ document.getElementById("syncBtn").addEventListener("click", () => {
 });
 
 document.getElementById("resetBtn").addEventListener("click", () => {
-  if(!confirm("Vill du nollställa allt? (stjärnor, djur, dekorationer, upplåsning, uppdrag, daily, idag)")) return;
+  if(!confirm("Vill du nollställa allt? (stjärnor, djur, dekorationer, upplåsning, uppdrag, daily, lager)")) return;
   localStorage.removeItem(KEY_STARS);
   localStorage.removeItem(KEY_NAME);
   localStorage.removeItem(KEY_UNLOCK);
   localStorage.removeItem(KEY_ANIMALS);
+  localStorage.removeItem(KEY_STORAGE);
   localStorage.removeItem(KEY_DECOR);
   localStorage.removeItem(KEY_PROG);
   localStorage.removeItem(KEY_DAILY);
-  localStorage.removeItem(KEY_TODAY);
   init();
   setToast("Allt är nollställt.");
 });
@@ -1298,21 +1606,21 @@ document.getElementById("resetBtn").addEventListener("click", () => {
 init();
 
 /* =========================
-   KONTRAKT FÖR SPEL-SIDORNA (kort version)
+   KONTRAKT FÖR SPEL-SIDORNA
 ========================= */
 /*
-  Vid vinst i spel-sidorna:
+  I spel-sidorna ska du uppdatera två saker vid "vinst" (A-läget):
 
-  1) Daily quest:
-     mzDailyIncrement("eq"|"mult"|"frac", 1);
+  A) Stjärnor (om spelet ger stjärnor):
+     let s = parseInt(localStorage.getItem("mathZooStars") || "0", 10);
+     s += 1; // eller 2 etc
+     localStorage.setItem("mathZooStars", JSON.stringify(s));
 
-  2) Dagens sammanfattning:
-     mzTodayIncrement("eq", 1);
-     mzTodayIncrement("frac", 1);
-     mzTodayIncrement("mult", 1, { table: currentTable }); // ger även 3:an-räknaren
+  B) Upplåsningsräknare (mathZooProgress) + Dagens uppdrag (mathZooDaily)
+     mzDailyIncrement("mult"/"eq"/"frac", 1);
 
-  OBS: För att dessa ska finnas i spel-sidorna behöver du lägga dem i daily.js
-  (rekommenderat) eller kopiera in funktionerna där.
+  OBS: Lager-systemet sköts bara här på index-sidan.
+  Spel-sidorna behöver INTE veta något om lager.
 */
 </script>
 </body>
