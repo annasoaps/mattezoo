@@ -410,6 +410,7 @@ function finishRound(){
 
     incStars(1);
     incMultProg(1);
+    mzDailyIncrement("mult", 1);
 
     feedbackDiv.textContent = `🎉 Du klarade ${selectedTable}:ans tabell 3 varv och får 2 ⭐!`;
     feedbackDiv.className = "ok";
