@@ -377,12 +377,18 @@ function updateDisplay() {
     if (isSolved(leftSideObj, rightSideObj)) {
 
         // ✅ NYTT: Stjärna bara för slumpad ekvation + bara en gång
+     
         if (currentIsRandom && !rewardGiven) {
-            incStars(1);
-            incEqProgress(1);
-            mzDailyIncrement("eq", 1);
-            rewardGiven = true;
-        }
+    incStars(1);
+    incEqProgress(1);
+
+    // Daily quest + "I dag har jag gjort"
+    if (window.mzDailyIncrement) window.mzDailyIncrement("eq", 1);
+    if (window.mzTodayIncrement) window.mzTodayIncrement("eq", 1);
+
+    rewardGiven = true;
+}
+
 
         document.getElementById("suggestion").innerText =
             "🎉 Grattis! Du har löst ekvationen!";
