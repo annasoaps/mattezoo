@@ -406,17 +406,21 @@ function finishRound(){
   updateRoundsUI();
 
   // om vi nådde 3 varv och inte redan gett stjärna -> ge 1 ⭐ + progress mult +1
-  if(prog.rounds >= 3 && !prog.starGiven){
-    prog.starGiven = true;
-    saveLocal();
+ if(prog.rounds >= 3 && !prog.starGiven){
+  prog.starGiven = true;
+  saveLocal();
 
-    incStars(1);
-    incMultProg(1);
-    mzDailyIncrement("mult", 1);
+  incStars(1);
+  incMultProg(1);
 
-    feedbackDiv.textContent = `🎉 Du klarade ${selectedTable}:ans tabell 3 varv och får 2 ⭐!`;
-    feedbackDiv.className = "ok";
-  } else {
+  // Daily quest + "I dag har jag gjort" (vilken tabell)
+  if (window.mzDailyIncrement) window.mzDailyIncrement("mult", 1);
+  if (window.mzTodayAddTable) window.mzTodayAddTable(selectedTable, 1);
+
+  feedbackDiv.textContent = `🎉 Du klarade ${selectedTable}:ans tabell 3 varv och får 1 ⭐!`;
+  feedbackDiv.className = "ok";
+}
+ else {
     if(prog.rounds >= 3){
       feedbackDiv.textContent = `✅ Bra jobbat! ${selectedTable}:ans tabell är redan klar, men du kan öva mer.`;
     } else {
