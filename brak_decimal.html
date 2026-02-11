@@ -408,12 +408,17 @@ function tryMatch(){
 }
 
 function onAllMatched(){
-  if(mistakes === 0){
-    incStars(1);
-    incFracDecProg(1);
-    mzDailyIncrement("frac", 1);
-    setStatus("🎉 Perfekt! Inga fel. Du får 1 ⭐!");
-  } 
+ if(mistakes === 0){
+  incStars(1);
+  incFracDecProg(1);
+
+  // Daily quest + "I dag har jag gjort"
+  if (window.mzDailyIncrement) window.mzDailyIncrement("frac", 1);
+  if (window.mzTodayIncrement) window.mzTodayIncrement("frac", 1);
+
+  setStatus("🎉 Perfekt! Inga fel. Du får 1 ⭐!");
+} 
+
   else {
     setStatus("✅ Alla matchade! Men du hade fel någon gång, så ingen ⭐ den här rundan. Testa igen!");
   }
