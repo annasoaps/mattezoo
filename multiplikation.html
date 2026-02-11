@@ -82,10 +82,6 @@
     border-radius:10px;
   }
   button:hover{background:#43a047;}
-  button.secondary{background:#546e7a;}
-  button.secondary:hover{background:#455a64;}
-  button.danger{background:#c62828;}
-  button.danger:hover{background:#b71c1c;}
   button:disabled{opacity:.55; cursor:not-allowed;}
 
   /* Game box */
@@ -123,6 +119,7 @@
   }
   .ok{color:#16a34a; font-size:18px;}
   .bad{color:#dc2626; font-size:40px; line-height:1;}
+
   #status{
     display:flex;
     justify-content:space-between;
@@ -132,6 +129,14 @@
     font-size:14px;
     color:#334;
   }
+  .statusPill{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:999px;
+    padding:6px 10px;
+    font-weight:900;
+  }
+
   #tip{
     margin-top:12px;
     font-style:italic;
@@ -160,7 +165,37 @@
   }
   .tbtn:hover{filter:brightness(0.98);}
   .tbtn.active{background:#4f46e5; color:#fff;}
-  .tbtn.done{background:#dcfce7; color:#065f46; border:1px solid #16a34a;}
+
+  /* Best times */
+  #bestBox{
+    margin-top:10px;
+    background:#ffffff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:10px 12px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.04);
+  }
+  #bestTitle{
+    font-weight:900;
+    color:#334;
+    margin-bottom:8px;
+  }
+  #bestGrid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap:6px 10px;
+    font-size:14px;
+  }
+  .bestLine{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    padding:4px 0;
+    border-bottom:1px dashed rgba(0,0,0,0.06);
+  }
+  .bestLine:last-child{border-bottom:none;}
+  .bestLabel{font-weight:900; color:#334;}
+  .bestValue{font-weight:900; color:#1b5e20;}
 
   @media (max-width:520px){
     #scoreBox{position:static; margin-bottom:10px;}
@@ -178,22 +213,26 @@
   <div class="topRow">
     <div>
       <h2>Multiplikationstränare</h2>
-      <div class="muted">Klara en tabell 3 varv (1–10) så får du en ⭐.</div>
+      <div class="muted">Klara hela tabellen (1–10) så får du 1 ⭐. Försök slå ditt rekord!</div>
     </div>
     <a class="backLink" href="index.html">⬅ Tillbaka till Mattezoo</a>
   </div>
 
   <div class="row">
-    <div>
+    <div style="flex:1; min-width:260px;">
       <b>Välj tabell</b><br/>
       <div id="tableButtons"></div>
+
+      <div id="bestBox">
+        <div id="bestTitle">⏱️ Rekord (bästa tid per tabell)</div>
+        <div class="muted" style="margin-bottom:6px;">Tiden räknas från första frågan tills du klarat 1–10.</div>
+        <div id="bestGrid"></div>
+      </div>
     </div>
   </div>
 
   <div class="row" style="margin-top:10px;">
     <button id="startBtn" disabled>Starta</button>
-    <button id="resetTableBtn" class="secondary" disabled>Nollställ vald tabell</button>
-    <button id="resetAllBtn" class="danger">Nollställ ALLT</button>
   </div>
 
   <div id="gameBox" style="display:none;">
@@ -207,16 +246,18 @@
     <div id="feedback"></div>
 
     <div id="status">
-      <div>Uppgifter kvar: <b id="remaining">0</b></div>
-      <div>Varv: <b id="rounds">0</b> / 3</div>
+      <div class="statusPill">Uppgifter kvar: <b id="remaining">0</b></div>
+      <div class="statusPill">Tid: <b id="timeNow">0:00.0</b></div>
+      <div class="statusPill">Rekord: <b id="bestForSelected">—</b></div>
+      <div class="statusPill">Varv i denna start: <b id="sessionRounds">0</b></div>
     </div>
 
-    <div id="tip">Sikta på att få alla rätt. Du kan alltid prova dig fram.</div>
+    <div id="tip">Tips: Svara så snabbt du kan. Fel visar facit och du går vidare.</div>
   </div>
 </div>
+
 <script src="daily.js"></script>
 <script src="today.js"></script>
-
 
 <script>
 /* =========================
@@ -225,11 +266,8 @@
 const KEY_STARS = "mathZooStars";
 const KEY_PROG  = "mathZooProgress";
 
-/* =========================
-   LOKAL DATA FÖR TABELLPROGRESS
-   (endast för multiplikationssidan)
-========================= */
-const KEY_LOCAL = "multTrainer_simple_v1";
+/* Rekordtider */
+const KEY_BEST = "multTrainerBestTimes_v1";
 
 /* =========================
    STATE
@@ -237,27 +275,48 @@ const KEY_LOCAL = "multTrainer_simple_v1";
 const TABLES = [1,2,3,4,5,6,7,8,9,10];
 
 let selectedTable = null;
-
-// progress per tabell: { 1: { rounds:0, starGiven:false }, ... }
-let tableProgress = {};
-
-// runda: tasks som återstår i aktuell omgång
 let tasks = [];
 let currentTask = null;
+
+let sessionRounds = 0;
+
+// timer
+let startMs = null;
+let timerId = null;
+
+// best times { "1": ms, ... }
+let bestTimes = {};
 
 // UI
 const starsText = document.getElementById("starsText");
 const tableButtonsDiv = document.getElementById("tableButtons");
 const startBtn = document.getElementById("startBtn");
-const resetTableBtn = document.getElementById("resetTableBtn");
-const resetAllBtn = document.getElementById("resetAllBtn");
 const gameBox = document.getElementById("gameBox");
 const questionDiv = document.getElementById("question");
 const answerInput = document.getElementById("answer");
 const okBtn = document.getElementById("okBtn");
 const feedbackDiv = document.getElementById("feedback");
 const remainingSpan = document.getElementById("remaining");
-const roundsSpan = document.getElementById("rounds");
+const timeNowEl = document.getElementById("timeNow");
+const bestForSelectedEl = document.getElementById("bestForSelected");
+const sessionRoundsSpan = document.getElementById("sessionRounds");
+const bestGrid = document.getElementById("bestGrid");
+
+/* =========================
+   HELPERS
+========================= */
+function safeParse(json, fallback){
+  try { return JSON.parse(json); } catch { return fallback; }
+}
+function formatMs(ms){
+  if(typeof ms !== "number" || !Number.isFinite(ms) || ms < 0) return "—";
+  const totalTenths = Math.floor(ms / 100);
+  const tenths = totalTenths % 10;
+  const totalSeconds = Math.floor(totalTenths / 10);
+  const sec = totalSeconds % 60;
+  const min = Math.floor(totalSeconds / 60);
+  return `${min}:${String(sec).padStart(2,"0")}.${tenths}`;
+}
 
 /* =========================
    STJÄRNOR + PROGRESS (MATTEZOO)
@@ -268,15 +327,13 @@ function getStars(){
 function setStars(n){
   localStorage.setItem(KEY_STARS, JSON.stringify(n));
 }
-function incStars(n=2){
-  const s = getStars() + n;
-  setStars(s);
+function incStars(n=1){
+  setStars(getStars() + n);
   updateStarsUI();
 }
 
 function getProg(){
-  try{ return JSON.parse(localStorage.getItem(KEY_PROG) || "{}"); }
-  catch{ return {}; }
+  return safeParse(localStorage.getItem(KEY_PROG) || "{}", {});
 }
 function incMultProg(n=1){
   const p = getProg();
@@ -289,26 +346,51 @@ function updateStarsUI(){
 }
 
 /* =========================
-   SPARA/LADDA (lokal mult)
+   BEST TIMES: LOAD/SAVE/RENDER
 ========================= */
-function saveLocal(){
-  localStorage.setItem(KEY_LOCAL, JSON.stringify({ tableProgress }));
+function loadBestTimes(){
+  bestTimes = safeParse(localStorage.getItem(KEY_BEST) || "{}", {});
+  if(!bestTimes || typeof bestTimes !== "object") bestTimes = {};
 }
-function loadLocal(){
-  const raw = localStorage.getItem(KEY_LOCAL);
-  if(raw){
-    try{
-      const data = JSON.parse(raw);
-      if(data && typeof data === "object" && data.tableProgress){
-        tableProgress = data.tableProgress;
-      }
-    }catch{}
+function saveBestTimes(){
+  localStorage.setItem(KEY_BEST, JSON.stringify(bestTimes));
+}
+function getBestForTable(t){
+  const v = bestTimes[String(t)];
+  return (typeof v === "number" && Number.isFinite(v)) ? v : null;
+}
+function maybeUpdateBest(t, elapsedMs){
+  const key = String(t);
+  const prev = getBestForTable(t);
+  if(prev === null || elapsedMs < prev){
+    bestTimes[key] = elapsedMs;
+    saveBestTimes();
+    return true;
   }
-  // initiera om något saknas
+  return false;
+}
+function renderBestGrid(){
+  bestGrid.innerHTML = "";
   TABLES.forEach(t=>{
-    if(!tableProgress[t]) tableProgress[t] = { rounds:0, starGiven:false };
+    const line = document.createElement("div");
+    line.className = "bestLine";
+    const left = document.createElement("div");
+    left.className = "bestLabel";
+    left.textContent = `${t}:an`;
+    const right = document.createElement("div");
+    right.className = "bestValue";
+    right.textContent = formatMs(getBestForTable(t));
+    line.appendChild(left);
+    line.appendChild(right);
+    bestGrid.appendChild(line);
   });
-  saveLocal();
+}
+function updateBestForSelectedUI(){
+  if(!selectedTable){
+    bestForSelectedEl.textContent = "—";
+    return;
+  }
+  bestForSelectedEl.textContent = formatMs(getBestForTable(selectedTable));
 }
 
 /* =========================
@@ -321,33 +403,22 @@ function renderTableButtons(){
     btn.className = "tbtn";
     btn.textContent = `${t}:an`;
 
-    const prog = tableProgress[t];
-    if(prog.rounds >= 3) btn.classList.add("done");
     if(selectedTable === t) btn.classList.add("active");
 
     btn.addEventListener("click", ()=>{
       selectedTable = t;
       renderTableButtons();
       startBtn.disabled = false;
-      resetTableBtn.disabled = false;
       stopSessionUI();
-      updateRoundsUI();
+      updateBestForSelectedUI();
     });
 
     tableButtonsDiv.appendChild(btn);
   });
 }
 
-function updateRoundsUI(){
-  if(!selectedTable){
-    roundsSpan.textContent = "0";
-    return;
-  }
-  roundsSpan.textContent = String(tableProgress[selectedTable].rounds);
-}
-
 /* =========================
-   SESSION (3 varv)
+   SESSION (ett varv = 1–10)
 ========================= */
 function buildTasksForTable(t){
   const list = [];
@@ -357,13 +428,28 @@ function buildTasksForTable(t){
   return list;
 }
 
+function startTimer(){
+  startMs = performance.now();
+  stopTimer(); // safety: inget dubbelt
+  timerId = setInterval(()=>{
+    if(startMs === null) return;
+    const now = performance.now();
+    timeNowEl.textContent = formatMs(now - startMs);
+  }, 100);
+}
+
+function stopTimer(){
+  if(timerId){
+    clearInterval(timerId);
+    timerId = null;
+  }
+}
+
 function startSession(){
   if(!selectedTable) return;
 
-  const prog = tableProgress[selectedTable];
-
-  // om tabellen redan klar (3 varv), låt dem ändå spela men utan extra stjärna
   tasks = buildTasksForTable(selectedTable);
+  currentTask = null;
 
   gameBox.style.display = "block";
   feedbackDiv.textContent = "";
@@ -371,7 +457,13 @@ function startSession(){
   answerInput.value = "";
   answerInput.focus();
 
-  updateRoundsUI();
+  // timer + status
+  startTimer();
+  timeNowEl.textContent = "0:00.0";
+  updateBestForSelectedUI();
+
+  sessionRoundsSpan.textContent = String(sessionRounds);
+
   pickNextQuestion();
 }
 
@@ -381,6 +473,9 @@ function stopSessionUI(){
   feedbackDiv.className = "";
   tasks = [];
   currentTask = null;
+  startMs = null;
+  stopTimer();
+  timeNowEl.textContent = "0:00.0";
 }
 
 function pickNextQuestion(){
@@ -398,40 +493,43 @@ function pickNextQuestion(){
 }
 
 function finishRound(){
-  const prog = tableProgress[selectedTable];
-  prog.rounds += 1;
+  // stoppa timer och räkna tid
+  const endMs = performance.now();
+  const elapsed = (startMs !== null) ? (endMs - startMs) : null;
+  stopTimer();
 
-  saveLocal();
-  renderTableButtons();
-  updateRoundsUI();
+  sessionRounds += 1;
+  sessionRoundsSpan.textContent = String(sessionRounds);
 
-  // om vi nådde 3 varv och inte redan gett stjärna -> ge 1 ⭐ + progress mult +1
- if(prog.rounds >= 3 && !prog.starGiven){
-  prog.starGiven = true;
-  saveLocal();
-
-  incStars(2);
+  // alltid 1 ⭐ per varv
+  incStars(1);
   incMultProg(1);
 
-  // Daily quest + "I dag har jag gjort" (vilken tabell)
+  // Daily quest + today-logg (vilken tabell)
   if (window.mzDailyIncrement) window.mzDailyIncrement("mult", 1);
   if (window.mzTodayAddTable) window.mzTodayAddTable(selectedTable, 1);
 
-  feedbackDiv.textContent = `🎉 Du klarade ${selectedTable}:ans tabell 3 varv och får 2 ⭐!`;
-  feedbackDiv.className = "ok";
-}
- else {
-    if(prog.rounds >= 3){
-      feedbackDiv.textContent = `✅ Bra jobbat! ${selectedTable}:ans tabell är redan klar, men du kan öva mer.`;
-    } else {
-      feedbackDiv.textContent = `Bra! Varv ${prog.rounds} av 3 klart.`;
-    }
-    feedbackDiv.className = "ok";
+  // best time?
+  let newRecord = false;
+  if(elapsed !== null){
+    newRecord = maybeUpdateBest(selectedTable, elapsed);
   }
 
-  // pausa lite och göm spelrutan (känns “klart”)
+  renderBestGrid();
+  updateBestForSelectedUI();
+
+  const timeTxt = elapsed !== null ? formatMs(elapsed) : "—";
+  feedbackDiv.textContent = newRecord
+    ? `🏆 NYTT REKORD! Varv klart på ${timeTxt}. Du får 1 ⭐ för ${selectedTable}:ans tabell.`
+    : `🎉 Varv klart på ${timeTxt}. Du får 1 ⭐ för ${selectedTable}:ans tabell.`;
+  feedbackDiv.className = "ok";
+
+  // nytt varv direkt i samma tabell
   setTimeout(()=>{
-    stopSessionUI();
+    tasks = buildTasksForTable(selectedTable);
+    startTimer();
+    timeNowEl.textContent = "0:00.0";
+    pickNextQuestion();
   }, 900);
 }
 
@@ -454,49 +552,18 @@ function checkAnswer(){
     tasks = tasks.filter(t => !(t.a === currentTask.a && t.b === currentTask.b));
     remainingSpan.textContent = String(tasks.length);
 
-    setTimeout(pickNextQuestion, 450);
+    setTimeout(pickNextQuestion, 320);
   } else {
     feedbackDiv.textContent = String(correct);
     feedbackDiv.className = "bad";
-    setTimeout(pickNextQuestion, 2500);
+    setTimeout(pickNextQuestion, 2000);
   }
-}
-
-/* =========================
-   RESET
-========================= */
-function resetSelectedTable(){
-  if(!selectedTable) return;
-  if(!confirm(`Nollställa ${selectedTable}:ans tabell?`)) return;
-
-  tableProgress[selectedTable] = { rounds:0, starGiven:false };
-  saveLocal();
-  renderTableButtons();
-  updateRoundsUI();
-  stopSessionUI();
-}
-
-function resetAll(){
-  if(!confirm("Nollställa ALLT för multiplikation (alla tabeller)?")) return;
-
-  tableProgress = {};
-  TABLES.forEach(t=> tableProgress[t] = { rounds:0, starGiven:false });
-  saveLocal();
-
-  selectedTable = null;
-  renderTableButtons();
-  startBtn.disabled = true;
-  resetTableBtn.disabled = true;
-  stopSessionUI();
 }
 
 /* =========================
    EVENTS
 ========================= */
 startBtn.addEventListener("click", startSession);
-resetTableBtn.addEventListener("click", resetSelectedTable);
-resetAllBtn.addEventListener("click", resetAll);
-
 okBtn.addEventListener("click", checkAnswer);
 answerInput.addEventListener("keydown", (e)=>{
   if(e.key === "Enter") checkAnswer();
@@ -505,9 +572,11 @@ answerInput.addEventListener("keydown", (e)=>{
 /* =========================
    INIT
 ========================= */
-loadLocal();
+loadBestTimes();
 updateStarsUI();
 renderTableButtons();
+renderBestGrid();
+updateBestForSelectedUI();
 </script>
 </body>
 </html>
