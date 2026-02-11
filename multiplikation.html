@@ -410,14 +410,14 @@ function finishRound(){
   prog.starGiven = true;
   saveLocal();
 
-  incStars(1);
+  incStars(2);
   incMultProg(1);
 
   // Daily quest + "I dag har jag gjort" (vilken tabell)
   if (window.mzDailyIncrement) window.mzDailyIncrement("mult", 1);
   if (window.mzTodayAddTable) window.mzTodayAddTable(selectedTable, 1);
 
-  feedbackDiv.textContent = `🎉 Du klarade ${selectedTable}:ans tabell 3 varv och får 1 ⭐!`;
+  feedbackDiv.textContent = `🎉 Du klarade ${selectedTable}:ans tabell 3 varv och får 2 ⭐!`;
   feedbackDiv.className = "ok";
 }
  else {
