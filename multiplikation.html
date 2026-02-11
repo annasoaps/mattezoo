@@ -67,7 +67,7 @@
 
   /* Controls */
   .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
-  select, input, button{
+  input, button{
     padding:9px 10px;
     border-radius:10px;
     border:1px solid #cfcfcf;
@@ -82,6 +82,8 @@
     border-radius:10px;
   }
   button:hover{background:#43a047;}
+  button.secondary{background:#546e7a;}
+  button.secondary:hover{background:#455a64;}
   button:disabled{opacity:.55; cursor:not-allowed;}
 
   /* Game box */
@@ -137,6 +139,15 @@
     font-weight:900;
   }
 
+  #afterRow{
+    margin-top:10px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:center;
+  }
+
   #tip{
     margin-top:12px;
     font-style:italic;
@@ -166,9 +177,9 @@
   .tbtn:hover{filter:brightness(0.98);}
   .tbtn.active{background:#4f46e5; color:#fff;}
 
-  /* Best times */
+  /* Best times UNDER game */
   #bestBox{
-    margin-top:10px;
+    margin-top:12px;
     background:#ffffff;
     border:1px solid #e5e7eb;
     border-radius:12px;
@@ -178,7 +189,12 @@
   #bestTitle{
     font-weight:900;
     color:#334;
-    margin-bottom:8px;
+    margin-bottom:6px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
   }
   #bestGrid{
     display:grid;
@@ -222,12 +238,6 @@
     <div style="flex:1; min-width:260px;">
       <b>Välj tabell</b><br/>
       <div id="tableButtons"></div>
-
-      <div id="bestBox">
-        <div id="bestTitle">⏱️ Rekord (bästa tid per tabell)</div>
-        <div class="muted" style="margin-bottom:6px;">Tiden räknas från första frågan tills du klarat 1–10.</div>
-        <div id="bestGrid"></div>
-      </div>
     </div>
   </div>
 
@@ -252,7 +262,21 @@
       <div class="statusPill">Varv i denna start: <b id="sessionRounds">0</b></div>
     </div>
 
+    <div id="afterRow" style="display:none;">
+      <button id="againBtn" class="secondary">Kör igen</button>
+      <span class="muted">…eller välj en ny tabell ovan.</span>
+    </div>
+
     <div id="tip">Tips: Svara så snabbt du kan. Fel visar facit och du går vidare.</div>
+
+    <!-- Rekordlista under själva räknedelen -->
+    <div id="bestBox">
+      <div id="bestTitle">
+        <div>⏱️ Rekord (bästa tid per tabell)</div>
+        <div class="muted">Tiden räknas från första frågan tills du klarat 1–10.</div>
+      </div>
+      <div id="bestGrid"></div>
+    </div>
   </div>
 </div>
 
@@ -283,6 +307,7 @@ let sessionRounds = 0;
 // timer
 let startMs = null;
 let timerId = null;
+let roundFinished = false;
 
 // best times { "1": ms, ... }
 let bestTimes = {};
@@ -301,6 +326,8 @@ const timeNowEl = document.getElementById("timeNow");
 const bestForSelectedEl = document.getElementById("bestForSelected");
 const sessionRoundsSpan = document.getElementById("sessionRounds");
 const bestGrid = document.getElementById("bestGrid");
+const afterRow = document.getElementById("afterRow");
+const againBtn = document.getElementById("againBtn");
 
 /* =========================
    HELPERS
@@ -409,7 +436,9 @@ function renderTableButtons(){
       selectedTable = t;
       renderTableButtons();
       startBtn.disabled = false;
-      stopSessionUI();
+
+      // Om man byter tabell mitt i, stoppa sessionen visuellt
+      stopSessionUI(false);
       updateBestForSelectedUI();
     });
 
@@ -450,10 +479,15 @@ function startSession(){
 
   tasks = buildTasksForTable(selectedTable);
   currentTask = null;
+  roundFinished = false;
 
   gameBox.style.display = "block";
+  afterRow.style.display = "none";
   feedbackDiv.textContent = "";
   feedbackDiv.className = "";
+
+  answerInput.disabled = false;
+  okBtn.disabled = false;
   answerInput.value = "";
   answerInput.focus();
 
@@ -467,15 +501,26 @@ function startSession(){
   pickNextQuestion();
 }
 
-function stopSessionUI(){
-  gameBox.style.display = "none";
-  feedbackDiv.textContent = "";
-  feedbackDiv.className = "";
+function stopSessionUI(hideBox=true){
+  // stoppa timer om den tickar
+  stopTimer();
+  startMs = null;
+  roundFinished = false;
+
+  if(hideBox){
+    gameBox.style.display = "none";
+  } else {
+    // lämna rutan öppen men "nollställ" knappar/visning
+    feedbackDiv.textContent = "";
+    feedbackDiv.className = "";
+    afterRow.style.display = "none";
+    answerInput.disabled = false;
+    okBtn.disabled = false;
+    timeNowEl.textContent = "0:00.0";
+  }
+
   tasks = [];
   currentTask = null;
-  startMs = null;
-  stopTimer();
-  timeNowEl.textContent = "0:00.0";
 }
 
 function pickNextQuestion(){
@@ -493,10 +538,14 @@ function pickNextQuestion(){
 }
 
 function finishRound(){
-  // stoppa timer och räkna tid
+  // stoppa timer och lås, så det inte känns stressigt efteråt
   const endMs = performance.now();
   const elapsed = (startMs !== null) ? (endMs - startMs) : null;
   stopTimer();
+  roundFinished = true;
+
+  // visa sista tiden fryst i UI
+  timeNowEl.textContent = elapsed !== null ? formatMs(elapsed) : timeNowEl.textContent;
 
   sessionRounds += 1;
   sessionRoundsSpan.textContent = String(sessionRounds);
@@ -509,32 +558,30 @@ function finishRound(){
   if (window.mzDailyIncrement) window.mzDailyIncrement("mult", 1);
   if (window.mzTodayAddTable) window.mzTodayAddTable(selectedTable, 1);
 
-  // best time?
+  // rekord?
   let newRecord = false;
   if(elapsed !== null){
     newRecord = maybeUpdateBest(selectedTable, elapsed);
   }
-
   renderBestGrid();
   updateBestForSelectedUI();
 
   const timeTxt = elapsed !== null ? formatMs(elapsed) : "—";
   feedbackDiv.textContent = newRecord
-    ? `🏆 NYTT REKORD! Varv klart på ${timeTxt}. Du får 1 ⭐ för ${selectedTable}:ans tabell.`
-    : `🎉 Varv klart på ${timeTxt}. Du får 1 ⭐ för ${selectedTable}:ans tabell.`;
+    ? `🏆 NYTT REKORD! Du klarade ${selectedTable}:ans tabell på ${timeTxt} och får 1 ⭐!`
+    : `🎉 Klart! Du klarade ${selectedTable}:ans tabell på ${timeTxt} och får 1 ⭐!`;
   feedbackDiv.className = "ok";
 
-  // nytt varv direkt i samma tabell
-  setTimeout(()=>{
-    tasks = buildTasksForTable(selectedTable);
-    startTimer();
-    timeNowEl.textContent = "0:00.0";
-    pickNextQuestion();
-  }, 900);
+  // lås input så det känns "färdigt"
+  answerInput.disabled = true;
+  okBtn.disabled = true;
+
+  // visa "kör igen"
+  afterRow.style.display = "flex";
 }
 
 function checkAnswer(){
-  if(!currentTask) return;
+  if(!currentTask || roundFinished) return;
 
   const user = parseInt(answerInput.value, 10);
   const correct = currentTask.a * currentTask.b;
@@ -564,6 +611,12 @@ function checkAnswer(){
    EVENTS
 ========================= */
 startBtn.addEventListener("click", startSession);
+
+againBtn.addEventListener("click", ()=>{
+  // kör samma tabell igen direkt
+  startSession();
+});
+
 okBtn.addEventListener("click", checkAnswer);
 answerInput.addEventListener("keydown", (e)=>{
   if(e.key === "Enter") checkAnswer();
