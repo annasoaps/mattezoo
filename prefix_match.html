@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mattezoo – Prefix-match</title>
+<style>
+  body{
+    font-family: Arial, sans-serif;
+    background:#eef2f7;
+    margin:0;
+    padding:24px 14px 40px;
+  }
+  #app{
+    max-width:980px;
+    margin:0 auto;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 6px 22px rgba(0,0,0,0.09);
+    border-top:6px solid #4CAF50;
+    padding:18px 18px 22px;
+    position:relative;
+  }
+  h1{margin:0 0 6px; color:#2e7d32;}
+  p{margin:8px 0 12px; line-height:1.35;}
+  .muted{color:#566; font-size:14px;}
+
+  #starPill{
+    position:absolute; top:14px; right:14px;
+    background:#fffde7;
+    border:1px solid #ffe082;
+    border-radius:999px;
+    padding:7px 12px;
+    display:flex; align-items:center; gap:8px;
+    font-weight:800; color:#f57f17;
+  }
+  #starPill span{font-size:18px;}
+
+  .row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    margin-top:10px;
+  }
+  @media (max-width:760px){
+    .row{grid-template-columns:1fr;}
+  }
+
+  .card{
+    border:1px solid #e6e6e6;
+    border-radius:12px;
+    padding:12px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.05);
+    background:#fff;
+  }
+  .card h2{margin:0 0 10px; font-size:16px; color:#334;}
+
+  .grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+  }
+  .tile{
+    border:2px solid rgba(0,0,0,0.10);
+    border-radius:12px;
+    padding:10px 12px;
+    cursor:pointer;
+    user-select:none;
+    font-weight:900;
+    background:#f7fafc;
+    transition:transform .08s, box-shadow .08s, border-color .08s;
+  }
+  .tile:hover{
+    transform:translateY(-1px);
+    box-shadow:0 6px 16px rgba(0,0,0,0.08);
+  }
+  .tile.selected{
+    border-color:#4CAF50;
+    box-shadow:0 0 0 3px rgba(76,175,80,0.18);
+    background:#eef9f0;
+  }
+  .tile.matched{
+    cursor:default;
+    opacity:0.8;
+    border-color:rgba(0,0,0,0.10);
+    background:#f3f4f6;
+  }
+
+  .status{
+    margin-top:12px;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid #c8e6c9;
+    background:#e8f5e9;
+    color:#1b5e20;
+    font-weight:900;
+  }
+  .status.bad{
+    border-color:#ffcdd2;
+    background:#ffebee;
+    color:#b71c1c;
+  }
+
+  .btnRow{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:12px;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .btn{
+    border:none;
+    background:#4CAF50;
+    color:#fff;
+    padding:10px 12px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:900;
+  }
+  .btn:hover{background:#43a047;}
+  .btn.secondary{background:#546e7a;}
+  .btn.secondary:hover{background:#455a64;}
+  .btn:disabled{opacity:.55; cursor:not-allowed;}
+
+  .tiny{font-size:12px; color:#556; font-weight:800;}
+  .shake{ animation: shake .18s linear 2; }
+  @keyframes shake{
+    0%{transform:translateX(0)}
+    25%{transform:translateX(-3px)}
+    50%{transform:translateX(3px)}
+    75%{transform:translateX(-3px)}
+    100%{transform:translateX(0)}
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="starPill"><span>⭐</span> <span id="starsText">0</span></div>
+
+  <h1>📏 Prefix-match</h1>
+  <p>
+    Klicka ett <b>prefix</b> till vänster och klicka sedan rätt <b>värde</b> till höger.
+    När alla är rätt får du <b>1 ⭐</b>.
+  </p>
+
+  <div class="row">
+    <div class="card">
+      <h2>Prefix</h2>
+      <div id="leftGrid" class="grid"></div>
+    </div>
+    <div class="card">
+      <h2>Värde</h2>
+      <div id="rightGrid" class="grid"></div>
+    </div>
+  </div>
+
+  <div id="status" class="status">Välj ett prefix.</div>
+
+  <div class="btnRow">
+    <div class="tiny">Tips: Om du ångrar dig, klicka på samma ruta igen för att avmarkera.</div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button id="newBtn" class="btn secondary">Ny omgång</button>
+      <button id="backBtn" class="btn">⬅️ Tillbaka till zoo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ladda gärna dessa om du har dem, annars funkar spelet ändå -->
+<script src="daily.js"></script>
+<script src="today.js"></script>
+
+<script>
+/* =========
+   CONFIG
+========= */
+const KEY_STARS = "mathZooStars";
+
+/* Prefix-data (du kan lätt lägga till mega, micro osv senare) */
+const PREFIXES = [
+  { name:"kilo",  sym:"k", value:1000,  text:"1000" },
+  { name:"hekto", sym:"h", value:100,   text:"100"  },
+  { name:"deci",  sym:"d", value:0.1,   text:"0,1"  },
+  { name:"centi", sym:"c", value:0.01,  text:"0,01" },
+  { name:"milli", sym:"m", value:0.001, text:"0,001"}
+];
+
+/* =========
+   STATE
+========= */
+let stars = 0;
+let roundAwarded = false;
+
+let leftPick = null;   // index in left list
+let rightPick = null;  // index in right list
+
+let leftOrder = [];    // array of indices into PREFIXES
+let rightOrder = [];   // array of indices into PREFIXES (shuffled)
+
+let matchedLeft = new Set();   // left indices matched
+let matchedRight = new Set();  // right indices matched
+
+/* =========
+   HELPERS
+========= */
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+function loadStars(){
+  stars = parseInt(localStorage.getItem(KEY_STARS) || "0", 10);
+  if(Number.isNaN(stars)) stars = 0;
+  document.getElementById("starsText").textContent = String(stars);
+}
+function addStar(n=1){
+  stars += n;
+  localStorage.setItem(KEY_STARS, JSON.stringify(stars));
+  document.getElementById("starsText").textContent = String(stars);
+}
+
+/* Safe calls (så spelet inte kraschar om du inte lagt till prefix i daily/today än) */
+function safeDailyIncrement(type, amount=1){
+  try{
+    if(typeof window.mzDailyIncrement === "function"){
+      window.mzDailyIncrement(type, amount);
+    }
+  }catch{}
+}
+function safeTodayIncrement(type, amount=1){
+  try{
+    if(typeof window.mzTodayIncrement === "function"){
+      window.mzTodayIncrement(type, amount);
+    }
+  }catch{}
+}
+
+function setStatus(msg, good=true){
+  const s = document.getElementById("status");
+  s.textContent = msg;
+  s.classList.toggle("bad", !good);
+}
+
+/* =========
+   RENDER
+========= */
+function render(){
+  const leftGrid = document.getElementById("leftGrid");
+  const rightGrid = document.getElementById("rightGrid");
+  leftGrid.innerHTML = "";
+  rightGrid.innerHTML = "";
+
+  leftOrder.forEach((pIdx, pos)=>{
+    const p = PREFIXES[pIdx];
+    const el = document.createElement("div");
+    el.className = "tile";
+    el.textContent = `${p.name} (${p.sym})`;
+
+    if(matchedLeft.has(pos)) el.classList.add("matched");
+    if(leftPick === pos) el.classList.add("selected");
+
+    el.addEventListener("click", ()=>{
+      if(matchedLeft.has(pos)) return;
+      leftPick = (leftPick === pos) ? null : pos;
+      if(leftPick === null) setStatus("Välj ett prefix.");
+      renderSelectionOnly();
+      tryMatch();
+    });
+
+    leftGrid.appendChild(el);
+  });
+
+  rightOrder.forEach((pIdx, pos)=>{
+    const p = PREFIXES[pIdx];
+    const el = document.createElement("div");
+    el.className = "tile";
+    el.textContent = p.text;
+
+    if(matchedRight.has(pos)) el.classList.add("matched");
+    if(rightPick === pos) el.classList.add("selected");
+
+    el.addEventListener("click", ()=>{
+      if(matchedRight.has(pos)) return;
+      rightPick = (rightPick === pos) ? null : pos;
+      if(rightPick === null) setStatus("Välj ett värde.");
+      renderSelectionOnly();
+      tryMatch();
+    });
+
+    rightGrid.appendChild(el);
+  });
+}
+
+function renderSelectionOnly(){
+  // Lätt och snabbt: render om allt, men behåller state
+  render();
+}
+
+/* =========
+   GAME LOGIC
+========= */
+function startNewRound(){
+  roundAwarded = false;
+  leftPick = null;
+  rightPick = null;
+  matchedLeft = new Set();
+  matchedRight = new Set();
+
+  leftOrder = shuffle([...Array(PREFIXES.length).keys()]);  // indices
+  rightOrder = shuffle([...Array(PREFIXES.length).keys()]); // indices
+
+  setStatus("Välj ett prefix.");
+  render();
+}
+
+function tryMatch(){
+  if(leftPick === null || rightPick === null) return;
+
+  const leftPrefixIndex = leftOrder[leftPick];
+  const rightPrefixIndex = rightOrder[rightPick];
+
+  if(leftPrefixIndex === rightPrefixIndex){
+    // match!
+    matchedLeft.add(leftPick);
+    matchedRight.add(rightPick);
+    leftPick = null;
+    rightPick = null;
+
+    const done = (matchedLeft.size === PREFIXES.length);
+    if(done){
+      if(!roundAwarded){
+        addStar(1);
+        roundAwarded = true;
+        safeDailyIncrement("prefix", 1);
+        safeTodayIncrement("prefix", 1);
+      }
+      setStatus("✅ Snyggt! Alla matchningar är rätt. Du fick 1 ⭐. Klicka Ny omgång för att köra igen!");
+    } else {
+      setStatus("✅ Rätt! Fortsätt.");
+    }
+    render();
+  } else {
+    // fel
+    setStatus("❌ Inte riktigt. Prova igen.", false);
+    // liten shake på status
+    const s = document.getElementById("status");
+    s.classList.remove("shake");
+    void s.offsetWidth;
+    s.classList.add("shake");
+    // avmarkera efter kort stund
+    setTimeout(()=>{
+      leftPick = null;
+      rightPick = null;
+      setStatus("Välj ett prefix.");
+      render();
+    }, 240);
+  }
+}
+
+/* =========
+   EVENTS
+========= */
+document.getElementById("newBtn").addEventListener("click", startNewRound);
+document.getElementById("backBtn").addEventListener("click", ()=> location.href = "index.html");
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  loadStars();
+  startNewRound();
+});
+</script>
+</body>
+</html>
