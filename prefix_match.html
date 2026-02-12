@@ -36,6 +36,31 @@
   }
   #starPill span{font-size:18px;}
 
+  /* NY: topRow + backLink (samma som bråk/decimal) */
+  .topRow{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+    padding-right:170px; /* plats för ⭐-pillret */
+  }
+  .backLink{
+    text-decoration:none;
+    color:#1b5e20;
+    background:#f1f8e9;
+    border:2px solid #c5e1a5;
+    padding:8px 10px;
+    border-radius:12px;
+    font-weight:800;
+    display:inline-block;
+  }
+  .backLink:hover{
+    box-shadow:0 4px 12px rgba(0,0,0,0.12);
+    transform: translateY(-1px);
+  }
+
   .row{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -132,6 +157,12 @@
     75%{transform:translateX(-3px)}
     100%{transform:translateX(0)}
   }
+
+  /* Mobil: gör så pill + topRow beter sig snyggt */
+  @media (max-width:520px){
+    #starPill{position:static; margin-bottom:10px;}
+    .topRow{padding-right:0;}
+  }
 </style>
 </head>
 <body>
@@ -139,11 +170,17 @@
 <div id="app">
   <div id="starPill"><span>⭐</span> <span id="starsText">0</span></div>
 
-  <h1>📏 Prefix-match</h1>
-  <p>
-    Klicka ett <b>prefix</b> till vänster och klicka sedan rätt <b>värde</b> till höger.
-    När alla är rätt får du <b>1 ⭐</b>.
-  </p>
+  <!-- NY: topRow med tillbaka-länk uppe (som bråk/decimal) -->
+  <div class="topRow">
+    <div>
+      <h1>📏 Prefix-match</h1>
+      <p style="margin:8px 0 0;">
+        Klicka ett <b>prefix</b> till vänster och klicka sedan rätt <b>värde</b> till höger.
+        När alla är rätt får du <b>1 ⭐</b>.
+      </p>
+    </div>
+    <a class="backLink" href="index.html">⬅ Tillbaka till Mattezoo</a>
+  </div>
 
   <div class="row">
     <div class="card">
@@ -162,7 +199,7 @@
     <div class="tiny">Tips: Om du ångrar dig, klicka på samma ruta igen för att avmarkera.</div>
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
       <button id="newBtn" class="btn secondary">Ny omgång</button>
-      <button id="backBtn" class="btn">⬅️ Tillbaka till zoo</button>
+      <!-- backBtn borttagen (nu används länken uppe) -->
     </div>
   </div>
 </div>
@@ -309,8 +346,8 @@ function startNewRound(){
   matchedLeft = new Set();
   matchedRight = new Set();
 
-  leftOrder = shuffle([...Array(PREFIXES.length).keys()]);  // indices
-  rightOrder = shuffle([...Array(PREFIXES.length).keys()]); // indices
+  leftOrder = shuffle([...Array(PREFIXES.length).keys()]);
+  rightOrder = shuffle([...Array(PREFIXES.length).keys()]);
 
   setStatus("Välj ett prefix.");
   render();
@@ -323,7 +360,6 @@ function tryMatch(){
   const rightPrefixIndex = rightOrder[rightPick];
 
   if(leftPrefixIndex === rightPrefixIndex){
-    // match!
     matchedLeft.add(leftPick);
     matchedRight.add(rightPick);
     leftPick = null;
@@ -343,14 +379,12 @@ function tryMatch(){
     }
     render();
   } else {
-    // fel
     setStatus("❌ Inte riktigt. Prova igen.", false);
-    // liten shake på status
     const s = document.getElementById("status");
     s.classList.remove("shake");
     void s.offsetWidth;
     s.classList.add("shake");
-    // avmarkera efter kort stund
+
     setTimeout(()=>{
       leftPick = null;
       rightPick = null;
@@ -364,7 +398,6 @@ function tryMatch(){
    EVENTS
 ========= */
 document.getElementById("newBtn").addEventListener("click", startNewRound);
-document.getElementById("backBtn").addEventListener("click", ()=> location.href = "index.html");
 
 document.addEventListener("DOMContentLoaded", ()=>{
   loadStars();
