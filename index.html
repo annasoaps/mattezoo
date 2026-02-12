@@ -502,7 +502,13 @@
           <b id="dFrac">0/0</b>
         </div>
 
-        <!-- NEW -->
+        <!-- NEW: Prefix match -->
+        <div class="dailyLine">
+          <span id="dailyLabelPrefix">Prefix – para ihop:</span>
+          <b id="dPrefix">0/0</b>
+        </div>
+
+        <!-- NEW: Unit convert -->
         <div class="dailyLine">
           <span id="dailyLabelUnit">Enhetsomvandling:</span>
           <b id="dUnit">0/0</b>
@@ -659,7 +665,6 @@ const KEY_ANIMALS = "mathZooAnimalsByZoneV2";
 const KEY_DECOR   = "mathZooDecorGridByZone";
 const KEY_PROG    = "mathZooProgress";
 const KEY_STORAGE = "mathZooAnimalStorageByZoneV1";
-const KEY_DAILY   = "mathZooDaily";
 
 /* =========================
    EVENT: Alla hjärtans (limited unlock)
@@ -695,11 +700,7 @@ const UNLOCK_REQ = {
   ocean:     { stars:10, mult:0,  eq:5,  label:"Klara 5 ekvationer" },
   ice:       { stars:10, mult:6,  eq:6,  label:"Klara 6 multiplikationer + 6 ekvationer" },
   fantasy:   { stars:10, mult:10, eq:10, label:"Klara 10 multiplikationer + 10 ekvationer" },
-
-  /* NEW: rymd */
   space:     { stars:10, mult:12, eq:12, label:"Klara 12 multiplikationer + 12 ekvationer" },
-
-  /* NEW: limited Valentine */
   valentine: { stars:10, mult:2,  eq:2,  label:"Klara 2 multiplikationer + 2 ekvationer (12–15 feb)" }
 };
 
@@ -747,16 +748,12 @@ const ANIMALS_POOL = {
     rare:     ["🐉"],
     epic:     ["🔥🐉"]
   },
-
-  /* NEW: rymd */
   space:{
     common:   ["🛰️","🪐","🌑","☄️"],
     uncommon: ["👽","🤖"],
     rare:     ["🚀","🛸"],
     epic:     ["🌌"]
   },
-
-  /* NEW: Valentine */
   valentine:{
     common:   ["🐰","🐻","🐶","🐱"],
     uncommon: ["🦊","🦄"],
@@ -765,7 +762,6 @@ const ANIMALS_POOL = {
   }
 };
 
-/* Shop blind bag rarity */
 const RARITY_CHANCE = [
   { r:"common",   p:0.70 },
   { r:"uncommon", p:0.20 },
@@ -773,7 +769,6 @@ const RARITY_CHANCE = [
   { r:"epic",     p:0.01 }
 ];
 
-/* Daily blind bag rarity (garanterat bättre) */
 const DAILY_RARITY_CHANCE = [
   { r:"rare",     p:0.70 },
   { r:"epic",     p:0.25 },
@@ -789,11 +784,7 @@ const DECOR_BY_ZONE = {
   ocean:    ["🪸","🐚","🌴","🏝️","🫧","🪨"],
   ice:      ["⛄","🏔️","🧊","❄️","🪨","🧣"],
   fantasy:  ["✨","🏰","🪄","🔮","🌙","🕯️"],
-
-  /* NEW: rymd */
   space:    ["⭐","🌟","✨","☄️","🌙","🛰️","🪐","🌌"],
-
-  /* NEW: Valentine */
   valentine:["💗","💖","💝","🍫","🍓","🌹","🌷","💐"]
 };
 
@@ -907,6 +898,7 @@ function loadState(){
 
   for(const z of ZONES) enforcePenLimit(z.key);
 }
+
 function saveState(){
   localStorage.setItem(KEY_STARS, JSON.stringify(stars));
   localStorage.setItem(KEY_NAME, zooName);
@@ -940,13 +932,12 @@ function updateProgressUI(){
 ========================= */
 function nextLockedZoneKey(){
   for(const z of ZONES){
-    if(isEventZone(z.key)) continue;  // Valentine ska inte störa unlock-ordningen
+    if(isEventZone(z.key)) continue;
     if(!unlocked[z.key]) return z.key;
   }
   return null;
 }
 function canUnlock(zoneKey){
-  // Special: Valentine kan bara låsas upp under event-fönstret (om inte redan upplåst)
   if(zoneKey === "valentine" && !unlocked.valentine){
     if(!isValentineWindow()) return false;
   }
@@ -975,136 +966,77 @@ function unlockZone(zoneKey){
 }
 
 /* =========================
-   DAILY
+   DAILY (via daily.js)
 ========================= */
-function todayKey(){ return new Date().toLocaleDateString("sv-SE"); }
-function seedFromString(s){
-  let h = 2166136261;
-  for(let i=0;i<s.length;i++){
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
+function getDailySafe(){
+  const d = (window.mzLoadDaily ? window.mzLoadDaily() : null);
+  if(!d) return null;
+
+  // Bakåtkomp: säkerställ fält
+  d.plan = d.plan || { enabled:{}, targets:{} };
+  d.plan.enabled = d.plan.enabled || {};
+  d.plan.targets = d.plan.targets || {};
+  d.counts = d.counts || {};
+
+  const types = ["eq","mult","frac","prefix","unit"];
+  for(const t of types){
+    if(typeof d.plan.enabled[t] !== "boolean") d.plan.enabled[t] = false;
+    if(typeof d.plan.targets[t] !== "number")  d.plan.targets[t] = 0;
+    if(typeof d.counts[t] !== "number")        d.counts[t] = 0;
   }
-  return h >>> 0;
-}
-function mulberry32(seed){
-  return function(){
-    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
-    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
-    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  }
-}
-function randInt(rnd, min, max){ return Math.floor(rnd() * (max - min + 1)) + min; }
+  if(typeof d.claimed !== "boolean") d.claimed = false;
+  if(typeof d.date !== "string") d.date = "";
 
-/* NEW: daily-plan med unit (Enhetsomvandling) */
-function generateDailyPlan(dateStr){
-  const rnd = mulberry32(seedFromString("mattezoo|" + dateStr));
-
-  // 60%: allt (eq+mult+frac+unit), annars 2-3 saker
-  const useAll = rnd() < 0.60;
-
-  const includeFrac = useAll ? true : (rnd() < 0.50);
-  const includeUnit = useAll ? true : (rnd() < 0.50);
-
-  const eqTarget   = randInt(rnd, 2, 5);
-  const multTarget = randInt(rnd, 2, 5);
-  const fracTarget = includeFrac ? 1 : 0;
-  const unitTarget = includeUnit ? randInt(rnd, 4, 8) : 0;
-
-  let eqEnabled = true, multEnabled = true;
-  let fracEnabled = (fracTarget > 0);
-  let unitEnabled = (unitTarget > 0);
-
-  if(!useAll){
-    if(fracEnabled && unitEnabled){
-      if(rnd() < 0.50) eqEnabled = false;
-      else multEnabled = false;
-    } else {
-      if(fracEnabled && rnd() < 0.35) fracEnabled = false;
-      if(unitEnabled && rnd() < 0.35) unitEnabled = false;
-    }
-  }
-
-  return {
-    enabled: { eq:eqEnabled, mult:multEnabled, frac:fracEnabled, unit:unitEnabled },
-    targets: {
-      eq:   eqEnabled ? eqTarget : 0,
-      mult: multEnabled ? multTarget : 0,
-      frac: fracEnabled ? 1 : 0,
-      unit: unitEnabled ? unitTarget : 0
-    }
-  };
-}
-
-function loadDaily(){
-  let d = null;
-  try{ d = JSON.parse(localStorage.getItem(KEY_DAILY) || "null"); }catch{}
-  const t = todayKey();
-
-  if(!d || d.date !== t){
-    const plan = generateDailyPlan(t);
-    d = { date:t, plan, counts:{ eq:0, mult:0, frac:0, unit:0 }, claimed:false };
-    localStorage.setItem(KEY_DAILY, JSON.stringify(d));
-  } else {
-    // Bakåtkompatibilitet: om gamla sparningar saknar unit
-    d.counts = d.counts || {};
-    if(typeof d.counts.eq   !== "number") d.counts.eq = 0;
-    if(typeof d.counts.mult !== "number") d.counts.mult = 0;
-    if(typeof d.counts.frac !== "number") d.counts.frac = 0;
-    if(typeof d.counts.unit !== "number") d.counts.unit = 0;
-
-    d.plan = d.plan || {};
-    d.plan.enabled = d.plan.enabled || { eq:true, mult:true, frac:true, unit:false };
-    d.plan.targets = d.plan.targets || { eq:0, mult:0, frac:0, unit:0 };
-
-    if(typeof d.plan.enabled.unit !== "boolean") d.plan.enabled.unit = false;
-    if(typeof d.plan.targets.unit !== "number")  d.plan.targets.unit = 0;
-
-    localStorage.setItem(KEY_DAILY, JSON.stringify(d));
-  }
   return d;
 }
-function saveDaily(d){ localStorage.setItem(KEY_DAILY, JSON.stringify(d)); }
 
-function mzDailyIncrement(type, amount=1){
-  const d = loadDaily();
-  if(!d.counts) d.counts = { eq:0, mult:0, frac:0, unit:0 };
-  if(typeof d.counts[type] !== "number") return;
-  d.counts[type] += amount;
-  saveDaily(d);
+function saveDailySafe(d){
+  if(window.mzSaveDaily) window.mzSaveDaily(d);
+  else localStorage.setItem("mathZooDaily", JSON.stringify(d));
 }
 
 function updateDailyUI(){
-  const d = loadDaily();
+  const d = getDailySafe();
+  if(!d){
+    document.getElementById("dailyDateText").textContent = "";
+    document.getElementById("dailyStatus").textContent =
+      "Daily saknas (daily.js laddades inte).";
+    document.getElementById("dailyClaimBtn").disabled = true;
+    return;
+  }
+
   document.getElementById("dailyDateText").textContent = d.date;
 
   const en = d.plan.enabled;
   const tg = d.plan.targets;
   const c  = d.counts;
 
-  document.getElementById("dailyLabelEq").textContent   = en.eq   ? "Ekvationer:" : "Ekvationer: (inte idag)";
-  document.getElementById("dailyLabelMult").textContent = en.mult ? "Multiplikation:" : "Multiplikation: (inte idag)";
-  document.getElementById("dailyLabelFrac").textContent = en.frac ? "Bråk↔Decimal (proffs):" : "Bråk↔Decimal: (inte idag)";
-  document.getElementById("dailyLabelUnit").textContent = en.unit ? "Enhetsomvandling:" : "Enhetsomvandling: (inte idag)";
+  document.getElementById("dailyLabelEq").textContent      = en.eq      ? "Ekvationer:" : "Ekvationer: (inte idag)";
+  document.getElementById("dailyLabelMult").textContent    = en.mult    ? "Multiplikation:" : "Multiplikation: (inte idag)";
+  document.getElementById("dailyLabelFrac").textContent    = en.frac    ? "Bråk↔Decimal (proffs):" : "Bråk↔Decimal: (inte idag)";
+  document.getElementById("dailyLabelPrefix").textContent  = en.prefix  ? "Prefix – para ihop:" : "Prefix – para ihop: (inte idag)";
+  document.getElementById("dailyLabelUnit").textContent    = en.unit    ? "Enhetsomvandling:" : "Enhetsomvandling: (inte idag)";
 
-  const eqDone   = Math.min(c.eq,   tg.eq);
-  const multDone = Math.min(c.mult, tg.mult);
-  const fracDone = Math.min(c.frac, tg.frac);
-  const unitDone = Math.min(c.unit, tg.unit);
+  const eqDone      = Math.min(c.eq, tg.eq);
+  const multDone    = Math.min(c.mult, tg.mult);
+  const fracDone    = Math.min(c.frac, tg.frac);
+  const prefixDone  = Math.min(c.prefix, tg.prefix);
+  const unitDone    = Math.min(c.unit, tg.unit);
 
-  document.getElementById("dEq").textContent   = `${eqDone}/${tg.eq}`;
-  document.getElementById("dMult").textContent = `${multDone}/${tg.mult}`;
-  document.getElementById("dFrac").textContent = `${fracDone}/${tg.frac}`;
-  document.getElementById("dUnit").textContent = `${unitDone}/${tg.unit}`;
+  document.getElementById("dEq").textContent      = `${eqDone}/${tg.eq}`;
+  document.getElementById("dMult").textContent    = `${multDone}/${tg.mult}`;
+  document.getElementById("dFrac").textContent    = `${fracDone}/${tg.frac}`;
+  document.getElementById("dPrefix").textContent  = `${prefixDone}/${tg.prefix}`;
+  document.getElementById("dUnit").textContent    = `${unitDone}/${tg.unit}`;
 
   const allDone =
-    (eqDone   >= tg.eq) &&
-    (multDone >= tg.mult) &&
-    (fracDone >= tg.frac) &&
-    (unitDone >= tg.unit);
+    (eqDone     >= tg.eq) &&
+    (multDone   >= tg.mult) &&
+    (fracDone   >= tg.frac) &&
+    (prefixDone >= tg.prefix) &&
+    (unitDone   >= tg.unit);
 
   const btn = document.getElementById("dailyClaimBtn");
-
   if(allDone && !d.claimed){
     document.getElementById("dailyStatus").textContent =
       "✅ Dagens uppdrag klart! Öppna din Daily Blind Bag 🎁 (bättre rarity!)";
@@ -1138,15 +1070,18 @@ function firstUnlockedZone(){
 }
 
 function openDailyBlindBag(){
-  const d = loadDaily();
+  const d = getDailySafe();
+  if(!d) return;
+
   const tg = d.plan.targets;
   const c  = d.counts;
 
   const allDone =
-    Math.min(c.eq, tg.eq)     >= tg.eq &&
-    Math.min(c.mult, tg.mult) >= tg.mult &&
-    Math.min(c.frac, tg.frac) >= tg.frac &&
-    Math.min(c.unit, tg.unit) >= tg.unit;
+    Math.min(c.eq, tg.eq)           >= tg.eq &&
+    Math.min(c.mult, tg.mult)       >= tg.mult &&
+    Math.min(c.frac, tg.frac)       >= tg.frac &&
+    Math.min(c.prefix, tg.prefix)   >= tg.prefix &&
+    Math.min(c.unit, tg.unit)       >= tg.unit;
 
   if(!allDone || d.claimed) return;
 
@@ -1163,7 +1098,7 @@ function openDailyBlindBag(){
   const placed = addAnimalToZone(zoneKey, storedObj);
 
   d.claimed = true;
-  saveDaily(d);
+  saveDailySafe(d);
 
   saveState();
   updateStarsUI();
@@ -1199,6 +1134,24 @@ function rarityClass(r){
   return "rar-common";
 }
 
+function seedFromString(s){
+  let h = 2166136261;
+  for(let i=0;i<s.length;i++){
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+function todayKey(){ return new Date().toLocaleDateString("sv-SE"); }
+
 function zonedRng(zoneKey){
   const seed = seedFromString("zoo|" + todayKey() + "|" + zoneKey);
   return mulberry32(seed);
@@ -1208,7 +1161,6 @@ function renderHabitat(zoneKey){
   const hab = document.createElement("div");
   hab.className = "habitat";
 
-  // små theme-tweaks
   if(zoneKey === "space"){
     hab.style.background = "rgba(0,0,0,0.35)";
     hab.style.border = "1px solid rgba(255,255,255,0.14)";
@@ -1335,7 +1287,6 @@ function renderZoo(){
     zoneDiv.appendChild(head);
     zoneDiv.appendChild(body);
 
-    // Locked overlay
     if(!unlocked[z.key] && z.key !== "forest"){
       const req = UNLOCK_REQ[z.key];
       const ov = document.createElement("div");
@@ -1429,7 +1380,6 @@ function renderStorageModal(){
   penEmpty.style.display = pen.length === 0 ? "block" : "none";
   storeEmpty.style.display = store.length === 0 ? "block" : "none";
 
-  // HAGE: klick -> parkera i lager
   pen.forEach((obj, idx)=>{
     const t = document.createElement("div");
     t.className = `aTile ${rarityClass(obj.rarity)}`;
@@ -1446,7 +1396,6 @@ function renderStorageModal(){
     penTiles.appendChild(t);
   });
 
-  // LAGER: klick -> flytta till hage
   store.forEach((obj, idx)=>{
     const t = document.createElement("div");
     t.className = `aTile ${rarityClass(obj.rarity)}`;
@@ -1496,7 +1445,6 @@ function renderShop(){
   }
 
   if(mode === "unlock"){
-    // Kedjan (utan Valentine)
     const next = nextLockedZoneKey();
     if(next){
       const zObj = ZONES.find(z=>z.key===next);
@@ -1521,7 +1469,6 @@ function renderShop(){
       items.appendChild(done);
     }
 
-    // Extra: Valentine-knapp under eventfönstret
     if(isValentineWindow() && !unlocked.valentine){
       const sep = document.createElement("div");
       sep.className = "muted";
@@ -1666,7 +1613,7 @@ function buyBlindBag(zoneKey){
 }
 
 /* =========================
-   TODAY-SUMMARY (today.js)
+   TODAY-SUMMARY (via today.js)
 ========================= */
 function renderTodaySummary(){
   const list = document.getElementById("todayList");
@@ -1679,9 +1626,11 @@ function renderTodaySummary(){
     return;
   }
 
-  const eq   = t.counts?.eq   || 0;
-  const frac = t.counts?.frac || 0;
-  const unit = t.counts?.unit || 0;
+  t.counts = t.counts || {};
+  const eq     = t.counts.eq     || 0;
+  const frac   = t.counts.frac   || 0;
+  const prefix = t.counts.prefix || 0;
+  const unit   = t.counts.unit   || 0;
 
   const tables = t.tables || {};
   const entries = Object.entries(tables)
@@ -1691,6 +1640,7 @@ function renderTodaySummary(){
   let html = "";
   html += `<li><b>Ekvationer:</b> ${eq}</li>`;
   html += `<li><b>Bråk↔Decimal:</b> ${frac}</li>`;
+  html += `<li><b>Prefix – para ihop:</b> ${prefix}</li>`;
   html += `<li><b>Enhetsomvandling:</b> ${unit}</li>`;
   html += `<li style="margin-top:6px;"><b>Tabeller</b></li>`;
 
@@ -1746,12 +1696,12 @@ document.getElementById("resetBtn").addEventListener("click", () => {
   localStorage.removeItem(KEY_STORAGE);
   localStorage.removeItem(KEY_DECOR);
   localStorage.removeItem(KEY_PROG);
-  localStorage.removeItem(KEY_DAILY);
+  localStorage.removeItem("mathZooDaily");
+  localStorage.removeItem("mathZooToday");
   init();
   setToast("Allt är nollställt.");
 });
 
-// Kör först när DOM är redo (och externa scripts hann laddas)
 document.addEventListener("DOMContentLoaded", init);
 </script>
 
