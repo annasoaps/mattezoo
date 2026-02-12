@@ -1615,7 +1615,9 @@ document.getElementById("resetBtn").addEventListener("click", () => {
   init();
   setToast("Allt är nollställt.");
 });
-
+  <script src="daily.js"></script>
+<script src="today.js"></script>
+  
 init();
 function renderTodaySummary(){
   const list = document.getElementById("todayList");
@@ -1674,8 +1676,7 @@ document.getElementById("todayRefreshBtn").addEventListener("click", renderToday
   Spel-sidorna behöver INTE veta något om lager.
 */
 </script>
-  <script src="daily.js"></script>
-<script src="today.js"></script>
+
 
 </body>
 </html>
