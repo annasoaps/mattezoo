@@ -470,16 +470,16 @@
           <h3>➗ Bråk &lt;-&gt; Decimal</h3>
           <p>Omvandla bråk till decimaltal</p>
         </a>
+
         <a class="gameBtn" href="prefix_match.html">
-  <h3>📏 Prefix – para ihop</h3>
-  <p>Matcha prefix (k, h, d, c, m) med rätt värde.</p>
-</a>
+          <h3>📏 Prefix – para ihop</h3>
+          <p>Matcha prefix (k, h, d, c, m) med rätt värde.</p>
+        </a>
 
-<a class="gameBtn" href="prefix_convert.html">
-  <h3>🔁 Prefix – omvandla</h3>
-  <p>Omvandla mellan enheter (t.ex. m ↔ km, l ↔ dl) och samla ⭐.</p>
-</a>
-
+        <a class="gameBtn" href="prefix_convert.html">
+          <h3>🔁 Enhetsomvandling</h3>
+          <p>Omvandla mellan enheter (t.ex. m ↔ km, l ↔ dl) och samla ⭐.</p>
+        </a>
       </div>
 
       <!-- DAILY QUESTS -->
@@ -500,6 +500,12 @@
         <div class="dailyLine">
           <span id="dailyLabelFrac">Bråk↔Decimal (proffs):</span>
           <b id="dFrac">0/0</b>
+        </div>
+
+        <!-- NEW -->
+        <div class="dailyLine">
+          <span id="dailyLabelUnit">Enhetsomvandling:</span>
+          <b id="dUnit">0/0</b>
         </div>
 
         <div id="dailyStatus">Gör uppdragen så låser du upp dagens blind bag 🎁</div>
@@ -649,9 +655,9 @@
 const KEY_STARS   = "mathZooStars";
 const KEY_NAME    = "mathZooName";
 const KEY_UNLOCK  = "mathZooUnlockedZones";
-const KEY_ANIMALS = "mathZooAnimalsByZoneV2"; // V2: djur är objekt med raritet
-const KEY_DECOR   = "mathZooDecorGridByZone"; // array(36) per zon (behålls)
-const KEY_PROG    = "mathZooProgress";        // { mult: n, eq: n }
+const KEY_ANIMALS = "mathZooAnimalsByZoneV2";
+const KEY_DECOR   = "mathZooDecorGridByZone";
+const KEY_PROG    = "mathZooProgress";
 const KEY_STORAGE = "mathZooAnimalStorageByZoneV1";
 const KEY_DAILY   = "mathZooDaily";
 
@@ -670,21 +676,19 @@ function isEventZone(key){
 
 /* =========================
    DATA: ZONER
-   (Valentine finns alltid i zoo-listan, men unlock är tidsbegränsad)
 ========================= */
 const ZONES = [
-  { key:"forest",  name:"Skog",    icon:"🌲", cls:"forest"  },
-  { key:"savannah",name:"Savann",  icon:"🌵", cls:"savannah"},
-  { key:"ocean",   name:"Hav",     icon:"🌊", cls:"ocean"   },
-  { key:"ice",     name:"Is",      icon:"❄️", cls:"ice"     },
-  { key:"fantasy", name:"Fantasi", icon:"🐉", cls:"fantasy" },
-  { key:"space",   name:"Rymd",    icon:"🪐", cls:"space"   },
+  { key:"forest",  name:"Skog",        icon:"🌲", cls:"forest"  },
+  { key:"savannah",name:"Savann",      icon:"🌵", cls:"savannah"},
+  { key:"ocean",   name:"Hav",         icon:"🌊", cls:"ocean"   },
+  { key:"ice",     name:"Is",          icon:"❄️", cls:"ice"     },
+  { key:"fantasy", name:"Fantasi",     icon:"🐉", cls:"fantasy" },
+  { key:"space",   name:"Rymd",        icon:"🪐", cls:"space"   },
   { key:"valentine", name:"Alla hjärtans", icon:"💗", cls:"valentine" }
 ];
 
 /* =========================
    UPPDRAG FÖR UPPLÅSNING
-   (OBS: Valentine ligger inte i "i ordning"-kedjan, men kan låsas upp under event)
 ========================= */
 const UNLOCK_REQ = {
   savannah:  { stars:10, mult:5,  eq:0,  label:"Klara 5 multiplikationer" },
@@ -695,7 +699,7 @@ const UNLOCK_REQ = {
   /* NEW: rymd */
   space:     { stars:10, mult:12, eq:12, label:"Klara 12 multiplikationer + 12 ekvationer" },
 
-  /* NEW: limited Valentine (kan bara låsas upp 12–15 feb) */
+  /* NEW: limited Valentine */
   valentine: { stars:10, mult:2,  eq:2,  label:"Klara 2 multiplikationer + 2 ekvationer (12–15 feb)" }
 };
 
@@ -822,7 +826,7 @@ let decorGridByZone = {
 let progress = { mult:0, eq:0 };
 
 /* =========================
-   STORAGE
+   STORAGE HELPERS
 ========================= */
 function safeParse(json, fallback){
   try{ return JSON.parse(json); }catch{ return fallback; }
@@ -941,7 +945,6 @@ function nextLockedZoneKey(){
   }
   return null;
 }
-
 function canUnlock(zoneKey){
   // Special: Valentine kan bara låsas upp under event-fönstret (om inte redan upplåst)
   if(zoneKey === "valentine" && !unlocked.valentine){
@@ -956,7 +959,6 @@ function canUnlock(zoneKey){
   const okEq    = (progress.eq || 0) >= (req.eq || 0);
   return okStars && okMult && okEq;
 }
-
 function unlockZone(zoneKey){
   if(unlocked[zoneKey]) return;
   if(!canUnlock(zoneKey)){
@@ -994,30 +996,42 @@ function mulberry32(seed){
 }
 function randInt(rnd, min, max){ return Math.floor(rnd() * (max - min + 1)) + min; }
 
+/* NEW: daily-plan med unit (Enhetsomvandling) */
 function generateDailyPlan(dateStr){
   const rnd = mulberry32(seedFromString("mattezoo|" + dateStr));
+
+  // 60%: allt (eq+mult+frac+unit), annars 2-3 saker
   const useAll = rnd() < 0.60;
+
   const includeFrac = useAll ? true : (rnd() < 0.50);
+  const includeUnit = useAll ? true : (rnd() < 0.50);
 
   const eqTarget   = randInt(rnd, 2, 5);
   const multTarget = randInt(rnd, 2, 5);
   const fracTarget = includeFrac ? 1 : 0;
+  const unitTarget = includeUnit ? randInt(rnd, 4, 8) : 0;
 
-  let eqEnabled = true, multEnabled = true, fracEnabled = (fracTarget > 0);
+  let eqEnabled = true, multEnabled = true;
+  let fracEnabled = (fracTarget > 0);
+  let unitEnabled = (unitTarget > 0);
 
   if(!useAll){
-    if(fracEnabled){
+    if(fracEnabled && unitEnabled){
       if(rnd() < 0.50) eqEnabled = false;
       else multEnabled = false;
+    } else {
+      if(fracEnabled && rnd() < 0.35) fracEnabled = false;
+      if(unitEnabled && rnd() < 0.35) unitEnabled = false;
     }
   }
 
   return {
-    enabled: { eq:eqEnabled, mult:multEnabled, frac:fracEnabled },
+    enabled: { eq:eqEnabled, mult:multEnabled, frac:fracEnabled, unit:unitEnabled },
     targets: {
       eq:   eqEnabled ? eqTarget : 0,
       mult: multEnabled ? multTarget : 0,
-      frac: fracEnabled ? 1 : 0
+      frac: fracEnabled ? 1 : 0,
+      unit: unitEnabled ? unitTarget : 0
     }
   };
 }
@@ -1029,7 +1043,23 @@ function loadDaily(){
 
   if(!d || d.date !== t){
     const plan = generateDailyPlan(t);
-    d = { date:t, plan, counts:{ eq:0, mult:0, frac:0 }, claimed:false };
+    d = { date:t, plan, counts:{ eq:0, mult:0, frac:0, unit:0 }, claimed:false };
+    localStorage.setItem(KEY_DAILY, JSON.stringify(d));
+  } else {
+    // Bakåtkompatibilitet: om gamla sparningar saknar unit
+    d.counts = d.counts || {};
+    if(typeof d.counts.eq   !== "number") d.counts.eq = 0;
+    if(typeof d.counts.mult !== "number") d.counts.mult = 0;
+    if(typeof d.counts.frac !== "number") d.counts.frac = 0;
+    if(typeof d.counts.unit !== "number") d.counts.unit = 0;
+
+    d.plan = d.plan || {};
+    d.plan.enabled = d.plan.enabled || { eq:true, mult:true, frac:true, unit:false };
+    d.plan.targets = d.plan.targets || { eq:0, mult:0, frac:0, unit:0 };
+
+    if(typeof d.plan.enabled.unit !== "boolean") d.plan.enabled.unit = false;
+    if(typeof d.plan.targets.unit !== "number")  d.plan.targets.unit = 0;
+
     localStorage.setItem(KEY_DAILY, JSON.stringify(d));
   }
   return d;
@@ -1038,7 +1068,8 @@ function saveDaily(d){ localStorage.setItem(KEY_DAILY, JSON.stringify(d)); }
 
 function mzDailyIncrement(type, amount=1){
   const d = loadDaily();
-  if(!d.counts[type] && d.counts[type] !== 0) return;
+  if(!d.counts) d.counts = { eq:0, mult:0, frac:0, unit:0 };
+  if(typeof d.counts[type] !== "number") return;
   d.counts[type] += amount;
   saveDaily(d);
 }
@@ -1054,16 +1085,24 @@ function updateDailyUI(){
   document.getElementById("dailyLabelEq").textContent   = en.eq   ? "Ekvationer:" : "Ekvationer: (inte idag)";
   document.getElementById("dailyLabelMult").textContent = en.mult ? "Multiplikation:" : "Multiplikation: (inte idag)";
   document.getElementById("dailyLabelFrac").textContent = en.frac ? "Bråk↔Decimal (proffs):" : "Bråk↔Decimal: (inte idag)";
+  document.getElementById("dailyLabelUnit").textContent = en.unit ? "Enhetsomvandling:" : "Enhetsomvandling: (inte idag)";
 
   const eqDone   = Math.min(c.eq,   tg.eq);
   const multDone = Math.min(c.mult, tg.mult);
   const fracDone = Math.min(c.frac, tg.frac);
+  const unitDone = Math.min(c.unit, tg.unit);
 
   document.getElementById("dEq").textContent   = `${eqDone}/${tg.eq}`;
   document.getElementById("dMult").textContent = `${multDone}/${tg.mult}`;
   document.getElementById("dFrac").textContent = `${fracDone}/${tg.frac}`;
+  document.getElementById("dUnit").textContent = `${unitDone}/${tg.unit}`;
 
-  const allDone = (eqDone>=tg.eq) && (multDone>=tg.mult) && (fracDone>=tg.frac);
+  const allDone =
+    (eqDone   >= tg.eq) &&
+    (multDone >= tg.mult) &&
+    (fracDone >= tg.frac) &&
+    (unitDone >= tg.unit);
+
   const btn = document.getElementById("dailyClaimBtn");
 
   if(allDone && !d.claimed){
@@ -1106,7 +1145,8 @@ function openDailyBlindBag(){
   const allDone =
     Math.min(c.eq, tg.eq)     >= tg.eq &&
     Math.min(c.mult, tg.mult) >= tg.mult &&
-    Math.min(c.frac, tg.frac) >= tg.frac;
+    Math.min(c.frac, tg.frac) >= tg.frac &&
+    Math.min(c.unit, tg.unit) >= tg.unit;
 
   if(!allDone || d.claimed) return;
 
@@ -1389,6 +1429,7 @@ function renderStorageModal(){
   penEmpty.style.display = pen.length === 0 ? "block" : "none";
   storeEmpty.style.display = store.length === 0 ? "block" : "none";
 
+  // HAGE: klick -> parkera i lager
   pen.forEach((obj, idx)=>{
     const t = document.createElement("div");
     t.className = `aTile ${rarityClass(obj.rarity)}`;
@@ -1405,6 +1446,7 @@ function renderStorageModal(){
     penTiles.appendChild(t);
   });
 
+  // LAGER: klick -> flytta till hage
   store.forEach((obj, idx)=>{
     const t = document.createElement("div");
     t.className = `aTile ${rarityClass(obj.rarity)}`;
@@ -1639,6 +1681,7 @@ function renderTodaySummary(){
 
   const eq   = t.counts?.eq   || 0;
   const frac = t.counts?.frac || 0;
+  const unit = t.counts?.unit || 0;
 
   const tables = t.tables || {};
   const entries = Object.entries(tables)
@@ -1648,6 +1691,7 @@ function renderTodaySummary(){
   let html = "";
   html += `<li><b>Ekvationer:</b> ${eq}</li>`;
   html += `<li><b>Bråk↔Decimal:</b> ${frac}</li>`;
+  html += `<li><b>Enhetsomvandling:</b> ${unit}</li>`;
   html += `<li style="margin-top:6px;"><b>Tabeller</b></li>`;
 
   if(entries.length === 0){
