@@ -89,17 +89,6 @@
     color:#223;
   }
 
-  #ruleLine{
-    text-align:center;
-    margin:0 0 12px;
-    font-weight:900;
-    color:#1b5e20;
-    background:#e8f5e9;
-    border:1px solid #c8e6c9;
-    border-radius:12px;
-    padding:10px 12px;
-  }
-
   #answerRow{
     display:flex;
     justify-content:center;
@@ -113,6 +102,21 @@
     font-size:20px;
     border-radius:999px;
   }
+
+  /* NY: ledtrådsrad under svarsrutan, syns bara efter fel */
+  #hintLine{
+    display:none;
+    text-align:center;
+    margin:10px auto 0;
+    font-weight:900;
+    color:#334;
+    background:#fff3e0;
+    border:1px solid #ffcc80;
+    border-radius:12px;
+    padding:10px 12px;
+    max-width:720px;
+  }
+
   #feedback{
     text-align:center;
     min-height:50px;
@@ -176,7 +180,6 @@
 
   <div id="gameBox" style="display:none;">
     <div id="prompt">—</div>
-    <div id="ruleLine">—</div>
 
     <div id="answerRow">
       <input id="answer" type="text" inputmode="decimal" placeholder="Skriv svar" />
@@ -184,6 +187,9 @@
       <button id="againBtn" class="secondary" style="display:none;">Kör igen</button>
       <button id="backBtn" class="secondary">⬅️ Tillbaka</button>
     </div>
+
+    <!-- NY placering -->
+    <div id="hintLine"></div>
 
     <div id="feedback"></div>
     <div class="tiny" id="footNote"></div>
@@ -202,8 +208,6 @@ const KEY_STARS = "mathZooStars";
 
 /* =========================
    UNITS + FACTORS
-   faktor = hur många "basenheter" per enhet
-   (längd bas: meter, volym bas: liter, massa bas: gram)
 ========================= */
 const UNITS = {
   length: [
@@ -217,19 +221,27 @@ const UNITS = {
   ]
 };
 
+/* Prefix-fakta för hints */
+const PREFIX_INFO = {
+  "mm": { prefix:"milli", val:0.001 },
+  "ml": { prefix:"milli", val:0.001 },
+  "cm": { prefix:"centi", val:0.01 },
+  "dl": { prefix:"deci",  val:0.1 },
+  "hg": { prefix:"hekto", val:100 },
+  "km": { prefix:"kilo",  val:1000 },
+  "kg": { prefix:"kilo",  val:1000 }
+};
+
 /* =========================
    STATE
 ========================= */
 let stars = 0;
-
 let level = "easy";
-let tasks = [];          // 10 tasks
+let tasks = [];
 let taskIndex = 0;
 let wrongThis = 0;
 let roundDone = false;
-
-/* current task */
-let cur = null;          // { cat, fromU, toU, val, ans }
+let cur = null;
 
 /* =========================
    UI refs
@@ -240,12 +252,12 @@ const startBtn = document.getElementById("startBtn");
 const gameBox = document.getElementById("gameBox");
 
 const promptDiv = document.getElementById("prompt");
-const ruleLine = document.getElementById("ruleLine");
 const answerInput = document.getElementById("answer");
 const okBtn = document.getElementById("okBtn");
 const againBtn = document.getElementById("againBtn");
 const backBtn = document.getElementById("backBtn");
 
+const hintLine = document.getElementById("hintLine");
 const feedbackDiv = document.getElementById("feedback");
 const qIdxSpan = document.getElementById("qIdx");
 const wrongThisSpan = document.getElementById("wrongThis");
@@ -287,14 +299,6 @@ function randInt(min, max){
 function pick(arr){
   return arr[Math.floor(Math.random()*arr.length)];
 }
-function shuffle(a){
-  const arr = a.slice();
-  for(let i=arr.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [arr[i],arr[j]]=[arr[j],arr[i]];
-  }
-  return arr;
-}
 
 /* Parse number with comma or dot */
 function parseUserNumber(s){
@@ -306,87 +310,60 @@ function parseUserNumber(s){
 
 /* Format Swedish-ish (comma) but keep short */
 function formatSV(n){
-  // avoid -0
   if(Math.abs(n) < 1e-12) n = 0;
-
-  // round to max 6 decimals, then trim
   let s = (Math.round(n * 1e6) / 1e6).toString();
-
-  // if scientific, keep it (rare here)
   if(s.includes("e")) return s.replace(".", ",");
-
-  // trim trailing zeros
   if(s.includes(".")){
     s = s.replace(/0+$/,"").replace(/\.$/,"");
   }
   return s.replace(".", ",");
 }
 
-/* Compute conversion: val * fromFactor / toFactor */
+/* Compute conversion */
 function convert(val, fromF, toF){
   return val * (fromF / toF);
 }
 
-/* Rule line generator */
-function ruleText(toU, fromU){
-  // Base relation message: "km är 1000 m" etc.
-  const rel = {
-    "km": { base:"m",  k:1000 },
-    "m":  { base:"m",  k:1 },
-    "cm": { base:"m",  k:0.01 },
-    "mm": { base:"m",  k:0.001 },
-
-    "l":  { base:"l",  k:1 },
-    "dl": { base:"l",  k:0.1 },
-    "ml": { base:"l",  k:0.001 },
-
-    "kg": { base:"g",  k:1000 },
-    "hg": { base:"g",  k:100 },
-    "g":  { base:"g",  k:1 }
-  };
-
-  const to = rel[toU];
-  const from = rel[fromU];
-  if(!to || !from) return "Flytta decimaltecknet utifrån prefixet.";
-
-  // We explain using TO-unit relation to base:
-  // If converting to unit that is larger (like km): divide by 1000 (relative to base).
-  // If converting to smaller (like cm): multiply by 100.
-  // We can decide operation from val_in_base = val * from.k (if base differs, but we used base)
-  // For simplicity, use ratio fromF/toF.
-  const fromF = from.k;
-  const toF   = to.k;
+/* Hint helpers */
+function hideHint(){
+  hintLine.style.display = "none";
+  hintLine.textContent = "";
+}
+function showHint(msg){
+  hintLine.textContent = msg;
+  hintLine.style.display = "block";
+}
+function opHint(fromF, toF){
   const ratio = fromF / toF;
-
-  if(Math.abs(ratio - 1) < 1e-12){
-    return `${toU} och ${fromU} är samma storlek här, så svaret blir samma tal.`;
-  }
-  if(ratio < 1){
-    // example: from km to m: fromF/toF = 1000/1 = 1000 (ratio >1). so not here
-    // ratio < 1 means going to "bigger unit" (m -> km) or from smaller to bigger
-    const divBy = 1/ratio;
-    return `${toU} är större än ${fromU}, så dela med ${formatSV(divBy)}.`;
+  if(Math.abs(ratio - 1) < 1e-12) return "Samma enhet i praktiken: svaret blir samma tal.";
+  if(ratio > 1){
+    // multiply
+    return `…så prova att multiplicera med ${formatSV(ratio)}.`;
   } else {
-    return `${toU} är mindre än ${fromU}, så multiplicera med ${formatSV(ratio)}.`;
+    // divide
+    return `…så prova att dela med ${formatSV(1/ratio)}.`;
   }
+}
+function prefixHintForUnit(u){
+  const info = PREFIX_INFO[u];
+  if(!info) return null;
+  // Exakt som ditt exempel: "deci betyder 0,1"
+  return `${info.prefix} betyder ${formatSV(info.val)}`;
+}
+function pickBestPrefixHint(cur){
+  // Prioritera from-enheten om den har prefix, annars to-enheten
+  return prefixHintForUnit(cur.fromU) || prefixHintForUnit(cur.toU);
 }
 
 /* =========================
-   Task generation (10 st)
+   Task generation
 ========================= */
 function genTask(level){
-  // Pick category based on level
   let cats = ["length","volume","mass"];
-  if(level === "easy") cats = ["length","volume","mass"];
-  if(level === "medium") cats = ["length","volume","mass"];
-  if(level === "hard") cats = ["length","volume","mass"];
-
   const cat = pick(cats);
 
-  // Allowed units per level
   let units = UNITS[cat];
   if(level === "easy"){
-    // keep very friendly pairs
     if(cat === "length") units = UNITS.length.filter(x => ["m","km"].includes(x.u));
     if(cat === "volume") units = UNITS.volume.filter(x => ["l","dl"].includes(x.u));
     if(cat === "mass")   units = UNITS.mass.filter(x => ["g","kg"].includes(x.u));
@@ -394,127 +371,90 @@ function genTask(level){
     if(cat === "length") units = UNITS.length.filter(x => ["mm","cm","m","km"].includes(x.u));
     if(cat === "volume") units = UNITS.volume.filter(x => ["ml","dl","l"].includes(x.u));
     if(cat === "mass")   units = UNITS.mass.filter(x => ["g","hg","kg"].includes(x.u));
-  } else { // hard
-    units = UNITS[cat]; // full set for that cat
+  } else {
+    units = UNITS[cat];
   }
 
-  // Choose from/to different
   let fromU = pick(units);
   let toU = pick(units);
-  while(toU.u === fromU.u){
-    toU = pick(units);
-  }
+  while(toU.u === fromU.u) toU = pick(units);
 
-  // Choose value with "nice" outputs depending on level
-  // We'll generate in FROM unit, but ensure answer not too messy.
   let val, ans;
 
   function tryMake(){
-    // pick magnitude ranges by category
     if(level === "easy"){
       if(cat === "length"){
-        // m<->km round-friendly
         if(fromU.u === "m" && toU.u === "km"){
-          val = randInt(100, 9000); // divisible by 1000 not guaranteed, but ok
-          // prefer divisible by 100 or 1000 sometimes
-          if(Math.random() < 0.6) val = randInt(1, 9) * 1000;
+          val = (Math.random() < 0.6) ? (randInt(1, 9) * 1000) : randInt(100, 9000);
         } else if(fromU.u === "km" && toU.u === "m"){
           val = randInt(1, 9);
-        } else {
-          val = randInt(1, 1000);
-        }
+        } else val = randInt(1, 1000);
       }
       if(cat === "volume"){
-        // l<->dl: keep one decimal at most
         if(fromU.u === "l" && toU.u === "dl"){
-          val = randInt(1, 25) / 10; // 0.1..2.5
+          val = randInt(1, 25) / 10;
         } else if(fromU.u === "dl" && toU.u === "l"){
-          val = randInt(1, 30); // 1..30 dl -> 0.1..3.0 l
-        } else {
-          val = randInt(1, 20);
-        }
+          val = randInt(1, 30);
+        } else val = randInt(1, 20);
       }
       if(cat === "mass"){
-        // g<->kg: keep clean
         if(fromU.u === "g" && toU.u === "kg"){
           val = randInt(1, 9) * 1000;
         } else if(fromU.u === "kg" && toU.u === "g"){
           val = randInt(1, 9);
-        } else {
-          val = randInt(1, 5000);
-        }
+        } else val = randInt(1, 5000);
       }
     }
 
     if(level === "medium"){
-      // a bit more variety, still mostly tidy
       if(cat === "length"){
         val = randInt(1, 5000);
-        if(fromU.u === "km") val = randInt(1, 25) / 10; // 0.1..2.5 km
+        if(fromU.u === "km") val = randInt(1, 25) / 10;
       }
       if(cat === "volume"){
         val = randInt(1, 900);
-        if(fromU.u === "l") val = randInt(1, 40) / 10; // 0.1..4.0 l
+        if(fromU.u === "l") val = randInt(1, 40) / 10;
       }
       if(cat === "mass"){
         val = randInt(1, 9000);
-        if(fromU.u === "kg") val = randInt(1, 50) / 10; // 0.1..5.0 kg
+        if(fromU.u === "kg") val = randInt(1, 50) / 10;
       }
     }
 
     if(level === "hard"){
-      // allow decimals, still keep it solvable without ugly floats
-      // choose value with up to 2 decimals
       const base = randInt(1, 9000);
       const dec = Math.random() < 0.55 ? (randInt(0,99)/100) : 0;
-      val = base/10 + dec; // 0.1..900.9-ish
-      // sometimes integer too
+      val = base/10 + dec;
       if(Math.random() < 0.35) val = randInt(1, 9999);
 
-      // keep reasonable magnitude for km/kg to avoid giant numbers
-      if(fromU.u === "km") val = randInt(1, 250) / 100; // 0.01..2.50
-      if(fromU.u === "kg") val = randInt(1, 250) / 100; // 0.01..2.50
-      if(fromU.u === "l")  val = randInt(1, 400) / 100; // 0.01..4.00
+      if(fromU.u === "km") val = randInt(1, 250) / 100;
+      if(fromU.u === "kg") val = randInt(1, 250) / 100;
+      if(fromU.u === "l")  val = randInt(1, 400) / 100;
     }
 
     ans = convert(val, fromU.f, toU.f);
   }
 
-  // Try a few times to get a "nice" answer (not too many decimals)
   for(let tries=0; tries<25; tries++){
     tryMake();
-    const rounded = Math.round(ans * 1000) / 1000;
-    const err = Math.abs(ans - rounded);
     if(level === "easy"){
-      // prefer <= 1 decimal or integer
       const rounded1 = Math.round(ans * 10) / 10;
       if(Math.abs(ans - rounded1) < 1e-9) break;
     } else if(level === "medium"){
-      // prefer <= 2 decimals
       const rounded2 = Math.round(ans * 100) / 100;
       if(Math.abs(ans - rounded2) < 1e-9) break;
     } else {
-      // allow up to 3 decimals
-      if(err < 1e-9) break;
+      const rounded3 = Math.round(ans * 1000) / 1000;
+      if(Math.abs(ans - rounded3) < 1e-9) break;
     }
   }
 
-  return {
-    cat,
-    fromU: fromU.u,
-    toU: toU.u,
-    fromF: fromU.f,
-    toF: toU.f,
-    val,
-    ans
-  };
+  return { cat, fromU: fromU.u, toU: toU.u, fromF: fromU.f, toF: toU.f, val, ans };
 }
 
 function buildRound(level){
   const out = [];
-  for(let i=0;i<10;i++){
-    out.push(genTask(level));
-  }
+  for(let i=0;i<10;i++) out.push(genTask(level));
   return out;
 }
 
@@ -535,6 +475,9 @@ function startRound(){
 
   feedbackDiv.textContent = "";
   feedbackDiv.className = "";
+  footNote.textContent = "";
+  hideHint();
+
   answerInput.value = "";
   answerInput.focus();
 
@@ -548,11 +491,10 @@ function renderTask(){
   const valSV = formatSV(cur.val);
   promptDiv.textContent = `Omvandla: ${valSV} ${cur.fromU} → ${cur.toU}`;
 
-  ruleLine.textContent = ruleText(cur.toU, cur.fromU);
-
   feedbackDiv.textContent = "";
   feedbackDiv.className = "";
   footNote.textContent = "";
+  hideHint();
 }
 
 function awardStarsForLevel(){
@@ -566,7 +508,7 @@ function finishRound(){
   const earned = awardStarsForLevel();
   addStars(earned);
 
-  // Prefix progress hooks (om du vill koppla in senare)
+  // Hooks (om du vill koppla daily/today senare)
   safeDailyIncrement("prefix", 1);
   safeTodayIncrement("prefix", 1);
 
@@ -600,7 +542,6 @@ function showReveal(){
 }
 
 function isCorrect(user, correct){
-  // tight tolerance
   return Math.abs(user - correct) < 1e-9;
 }
 
@@ -618,6 +559,7 @@ function checkAnswer(){
     feedbackDiv.textContent = "Rätt!";
     feedbackDiv.className = "ok";
     footNote.textContent = "";
+    hideHint();
 
     setTimeout(nextTask, 450);
   } else {
@@ -627,14 +569,31 @@ function checkAnswer(){
     feedbackDiv.textContent = "✖";
     feedbackDiv.className = "bad";
 
-    // efter 3 fel: visa rätt svar (men de måste fortfarande skriva det för att gå vidare)
-    if(wrongThis >= 3){
+    // Ledtrådar stegvis (UNDER svarsrutan)
+    if(wrongThis === 1){
+      const baseHint = pickBestPrefixHint(cur);
+      if(baseHint){
+        showHint(`${baseHint}.`);
+      } else {
+        // fallback om båda är basenheter
+        showHint("Tänk: större enhet ger mindre tal, mindre enhet ger större tal.");
+      }
+    } else if(wrongThis === 2){
+      const baseHint = pickBestPrefixHint(cur);
+      const how = opHint(cur.fromF, cur.toF);
+      if(baseHint){
+        showHint(`${baseHint} ${how}`);
+      } else {
+        showHint(`${how}`);
+      }
+    } else if(wrongThis >= 3){
+      // Efter 3 fel: visa rätt svar (men de måste fortfarande skriva det för att gå vidare)
       showReveal();
+      hideHint();
       feedbackDiv.className = "hint";
       feedbackDiv.textContent = "Nu ser du rätt svar. Skriv det för att gå vidare 🙂";
     }
 
-    // välj inte ny fråga automatiskt (det här blir mer “träna tills rätt”)
     answerInput.focus();
     answerInput.select();
   }
