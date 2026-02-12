@@ -275,6 +275,15 @@
   .ice{background:#dff7fb;}
   .fantasy{background:#f3e3fb;}
 
+  /* NEW THEMES */
+  .space{background:#0b1020;}
+  .space .zoneHeader, .space .zoneBody, .space .zoneMeta{ color:#e8eefc; }
+  .space .pillMini{ background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18); }
+  .space .zoneMeta button{ background:rgba(255,255,255,0.14); color:#e8eefc; border:1px solid rgba(255,255,255,0.20); }
+  .space .zoneMeta button:hover{ box-shadow:0 4px 12px rgba(0,0,0,0.35); }
+
+  .valentine{background:#ffe3f1;}
+
   /* Shop */
   #shop{
     display:grid;
@@ -575,7 +584,7 @@
 
         <div class="tiny" style="margin-top:10px;">
           <b>Lärarnotis:</b> Spelsidorna bör öka räknare i
-          <code>mathZooProgress</code> och i dagens uppdrag (se längst ner i filen).
+          <code>mathZooProgress</code> och i dagens uppdrag.
         </div>
       </div>
     </div>
@@ -619,7 +628,7 @@
   </div>
 </div>
 
-<!-- ✅ Ladda externa scripts på rätt sätt (INTE inne i ett <script>-block) -->
+<!-- Viktigt: externa scripts ska INTE ligga inne i en <script>...</script> -->
 <script src="daily.js"></script>
 <script src="today.js"></script>
 
@@ -633,46 +642,60 @@ const KEY_UNLOCK  = "mathZooUnlockedZones";
 const KEY_ANIMALS = "mathZooAnimalsByZoneV2"; // V2: djur är objekt med raritet
 const KEY_DECOR   = "mathZooDecorGridByZone"; // array(36) per zon (behålls)
 const KEY_PROG    = "mathZooProgress";        // { mult: n, eq: n }
-
-/* NEW: storage/parkering */
 const KEY_STORAGE = "mathZooAnimalStorageByZoneV1";
+const KEY_DAILY   = "mathZooDaily";
 
-/* DAILY */
-const KEY_DAILY   = "mathZooDaily";           // { date, plan:{targets, enabled}, counts, claimed }
+/* =========================
+   EVENT: Alla hjärtans (limited unlock)
+========================= */
+function isValentineWindow(){
+  const now = new Date();
+  const m = now.getMonth() + 1; // 1-12
+  const d = now.getDate();      // 1-31
+  return (m === 2 && d >= 12 && d <= 15);
+}
+function isEventZone(key){
+  return key === "valentine";
+}
 
 /* =========================
    DATA: ZONER
+   (Valentine finns alltid i zoo-listan, men unlock är tidsbegränsad)
 ========================= */
 const ZONES = [
   { key:"forest",  name:"Skog",    icon:"🌲", cls:"forest"  },
   { key:"savannah",name:"Savann",  icon:"🌵", cls:"savannah"},
   { key:"ocean",   name:"Hav",     icon:"🌊", cls:"ocean"   },
   { key:"ice",     name:"Is",      icon:"❄️", cls:"ice"     },
-  { key:"fantasy", name:"Fantasi", icon:"🐉", cls:"fantasy" }
+  { key:"fantasy", name:"Fantasi", icon:"🐉", cls:"fantasy" },
+  { key:"space",   name:"Rymd",    icon:"🪐", cls:"space"   },
+  { key:"valentine", name:"Alla hjärtans", icon:"💗", cls:"valentine" }
 ];
 
 /* =========================
    UPPDRAG FÖR UPPLÅSNING
+   (OBS: Valentine ligger inte i "i ordning"-kedjan, men kan låsas upp under event)
 ========================= */
 const UNLOCK_REQ = {
-  savannah: { stars:10, mult:5, eq:0,  label:"Klara 5 multiplikationer" },
-  ocean:    { stars:10, mult:0, eq:5,  label:"Klara 5 ekvationer" },
-  ice:      { stars:10, mult:6, eq:6,  label:"Klara 6 multiplikationer + 6 ekvationer" },
-  fantasy:  { stars:10, mult:10,eq:10, label:"Klara 10 multiplikationer + 10 ekvationer" }
+  savannah:  { stars:10, mult:5,  eq:0,  label:"Klara 5 multiplikationer" },
+  ocean:     { stars:10, mult:0,  eq:5,  label:"Klara 5 ekvationer" },
+  ice:       { stars:10, mult:6,  eq:6,  label:"Klara 6 multiplikationer + 6 ekvationer" },
+  fantasy:   { stars:10, mult:10, eq:10, label:"Klara 10 multiplikationer + 10 ekvationer" },
+
+  /* NEW: rymd */
+  space:     { stars:10, mult:12, eq:12, label:"Klara 12 multiplikationer + 12 ekvationer" },
+
+  /* NEW: limited Valentine (kan bara låsas upp 12–15 feb) */
+  valentine: { stars:10, mult:2,  eq:2,  label:"Klara 2 multiplikationer + 2 ekvationer (12–15 feb)" }
 };
 
 /* =========================
    PRISER
 ========================= */
-const PRICES = {
-  animal: 3,
-  decor: 2,
-  blind: 4,
-  unlock: 10
-};
+const PRICES = { animal: 3, decor: 2, blind: 4, unlock: 10 };
 
 /* =========================
-   HAGE/LAGER SETTINGS
+   HAGE/LAGER
 ========================= */
 const PEN_MAX = 24;
 
@@ -709,9 +732,26 @@ const ANIMALS_POOL = {
     uncommon: ["🦄"],
     rare:     ["🐉"],
     epic:     ["🔥🐉"]
+  },
+
+  /* NEW: rymd */
+  space:{
+    common:   ["🛰️","🪐","🌑","☄️"],
+    uncommon: ["👽","🤖"],
+    rare:     ["🚀","🛸"],
+    epic:     ["🌌"]
+  },
+
+  /* NEW: Valentine */
+  valentine:{
+    common:   ["🐰","🐻","🐶","🐱"],
+    uncommon: ["🦊","🦄"],
+    rare:     ["🕊️","🦢"],
+    epic:     ["💘🐉"]
   }
 };
 
+/* Shop blind bag rarity */
 const RARITY_CHANCE = [
   { r:"common",   p:0.70 },
   { r:"uncommon", p:0.20 },
@@ -719,6 +759,7 @@ const RARITY_CHANCE = [
   { r:"epic",     p:0.01 }
 ];
 
+/* Daily blind bag rarity (garanterat bättre) */
 const DAILY_RARITY_CHANCE = [
   { r:"rare",     p:0.70 },
   { r:"epic",     p:0.25 },
@@ -733,7 +774,13 @@ const DECOR_BY_ZONE = {
   savannah: ["🌵","🌾","🌻","🪨","🌞","🏜️"],
   ocean:    ["🪸","🐚","🌴","🏝️","🫧","🪨"],
   ice:      ["⛄","🏔️","🧊","❄️","🪨","🧣"],
-  fantasy:  ["✨","🏰","🪄","🔮","🌙","🕯️"]
+  fantasy:  ["✨","🏰","🪄","🔮","🌙","🕯️"],
+
+  /* NEW: rymd */
+  space:    ["⭐","🌟","✨","☄️","🌙","🛰️","🪐","🌌"],
+
+  /* NEW: Valentine */
+  valentine:["💗","💖","💝","🍫","🍓","🌹","🌷","💐"]
 };
 
 /* =========================
@@ -742,16 +789,24 @@ const DECOR_BY_ZONE = {
 let stars = 0;
 let zooName = "Mattezoo";
 
-let unlocked = { forest:true, savannah:false, ocean:false, ice:false, fantasy:false };
-let animalsByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[] };
-let storageByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[] };
+let unlocked = {
+  forest:true,
+  savannah:false, ocean:false, ice:false, fantasy:false,
+  space:false,
+  valentine:false
+};
+
+let animalsByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[] };
+let storageByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[] };
 
 let decorGridByZone = {
-  forest:   Array(36).fill(null),
-  savannah: Array(36).fill(null),
-  ocean:    Array(36).fill(null),
-  ice:      Array(36).fill(null),
-  fantasy:  Array(36).fill(null)
+  forest:Array(36).fill(null),
+  savannah:Array(36).fill(null),
+  ocean:Array(36).fill(null),
+  ice:Array(36).fill(null),
+  fantasy:Array(36).fill(null),
+  space:Array(36).fill(null),
+  valentine:Array(36).fill(null)
 };
 
 let progress = { mult:0, eq:0 };
@@ -771,10 +826,10 @@ function normalizeZonesObj(obj, fallbackFactory){
   }
   return out;
 }
-
 function ensureZoneArrays(zoneKey){
   if(!Array.isArray(animalsByZone[zoneKey])) animalsByZone[zoneKey] = [];
   if(!Array.isArray(storageByZone[zoneKey])) storageByZone[zoneKey] = [];
+  if(!Array.isArray(decorGridByZone[zoneKey])) decorGridByZone[zoneKey] = Array(36).fill(null);
 }
 function enforcePenLimit(zoneKey){
   ensureZoneArrays(zoneKey);
@@ -810,14 +865,11 @@ function loadState(){
 
   const a = localStorage.getItem(KEY_ANIMALS);
   if(a){
-    const parsed = safeParse(a, null);
-    animalsByZone = normalizeZonesObj(parsed, ()=>({ forest:[], savannah:[], ocean:[], ice:[], fantasy:[] }));
+    animalsByZone = normalizeZonesObj(safeParse(a, null), ()=>({ forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[] }));
   }
-
   const st = localStorage.getItem(KEY_STORAGE);
   if(st){
-    const parsed = safeParse(st, null);
-    storageByZone = normalizeZonesObj(parsed, ()=>({ forest:[], savannah:[], ocean:[], ice:[], fantasy:[] }));
+    storageByZone = normalizeZonesObj(safeParse(st, null), ()=>({ forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[] }));
   }
 
   const d = localStorage.getItem(KEY_DECOR);
@@ -839,11 +891,8 @@ function loadState(){
     }
   }
 
-  for(const z of ZONES){
-    enforcePenLimit(z.key);
-  }
+  for(const z of ZONES) enforcePenLimit(z.key);
 }
-
 function saveState(){
   localStorage.setItem(KEY_STARS, JSON.stringify(stars));
   localStorage.setItem(KEY_NAME, zooName);
@@ -862,9 +911,7 @@ function setToast(msg, good=true){
   t.textContent = msg || "";
   t.style.color = good ? "#2e7d32" : "#b71c1c";
 }
-function updateStarsUI(){
-  document.getElementById("starsText").textContent = String(stars);
-}
+function updateStarsUI(){ document.getElementById("starsText").textContent = String(stars); }
 function updateNameUI(){
   document.getElementById("zooNameText").textContent = zooName || "Mattezoo";
   document.getElementById("zooNameInput").value = zooName || "";
@@ -875,26 +922,35 @@ function updateProgressUI(){
 }
 
 /* =========================
-   UNLOCK
+   UNLOCK LOGIK
 ========================= */
 function nextLockedZoneKey(){
   for(const z of ZONES){
+    if(isEventZone(z.key)) continue;  // Valentine ska inte störa unlock-ordningen
     if(!unlocked[z.key]) return z.key;
   }
   return null;
 }
+
 function canUnlock(zoneKey){
+  // Special: Valentine kan bara låsas upp under event-fönstret (om inte redan upplåst)
+  if(zoneKey === "valentine" && !unlocked.valentine){
+    if(!isValentineWindow()) return false;
+  }
+
   const req = UNLOCK_REQ[zoneKey];
   if(!req) return false;
+
   const okStars = stars >= req.stars;
   const okMult  = (progress.mult || 0) >= (req.mult || 0);
   const okEq    = (progress.eq || 0) >= (req.eq || 0);
   return okStars && okMult && okEq;
 }
+
 function unlockZone(zoneKey){
   if(unlocked[zoneKey]) return;
   if(!canUnlock(zoneKey)){
-    setToast("Du uppfyller inte kraven ännu.", false);
+    setToast("Du uppfyller inte kraven ännu (eller så är eventet inte aktivt).", false);
     return;
   }
   stars -= PRICES.unlock;
@@ -907,11 +963,9 @@ function unlockZone(zoneKey){
 }
 
 /* =========================
-   DAILY: plan + UI
+   DAILY
 ========================= */
-function todayKey(){
-  return new Date().toLocaleDateString("sv-SE");
-}
+function todayKey(){ return new Date().toLocaleDateString("sv-SE"); }
 function seedFromString(s){
   let h = 2166136261;
   for(let i=0;i<s.length;i++){
@@ -928,9 +982,8 @@ function mulberry32(seed){
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   }
 }
-function randInt(rnd, min, max){
-  return Math.floor(rnd() * (max - min + 1)) + min;
-}
+function randInt(rnd, min, max){ return Math.floor(rnd() * (max - min + 1)) + min; }
+
 function generateDailyPlan(dateStr){
   const rnd = mulberry32(seedFromString("mattezoo|" + dateStr));
   const useAll = rnd() < 0.60;
@@ -958,6 +1011,7 @@ function generateDailyPlan(dateStr){
     }
   };
 }
+
 function loadDaily(){
   let d = null;
   try{ d = JSON.parse(localStorage.getItem(KEY_DAILY) || "null"); }catch{}
@@ -965,25 +1019,20 @@ function loadDaily(){
 
   if(!d || d.date !== t){
     const plan = generateDailyPlan(t);
-    d = {
-      date: t,
-      plan,
-      counts: { eq:0, mult:0, frac:0 },
-      claimed: false
-    };
+    d = { date:t, plan, counts:{ eq:0, mult:0, frac:0 }, claimed:false };
     localStorage.setItem(KEY_DAILY, JSON.stringify(d));
   }
   return d;
 }
-function saveDaily(d){
-  localStorage.setItem(KEY_DAILY, JSON.stringify(d));
-}
+function saveDaily(d){ localStorage.setItem(KEY_DAILY, JSON.stringify(d)); }
+
 function mzDailyIncrement(type, amount=1){
   const d = loadDaily();
   if(!d.counts[type] && d.counts[type] !== 0) return;
   d.counts[type] += amount;
   saveDaily(d);
 }
+
 function updateDailyUI(){
   const d = loadDaily();
   document.getElementById("dailyDateText").textContent = d.date;
@@ -1004,11 +1053,7 @@ function updateDailyUI(){
   document.getElementById("dMult").textContent = `${multDone}/${tg.mult}`;
   document.getElementById("dFrac").textContent = `${fracDone}/${tg.frac}`;
 
-  const allDone =
-    (eqDone   >= tg.eq) &&
-    (multDone >= tg.mult) &&
-    (fracDone >= tg.frac);
-
+  const allDone = (eqDone>=tg.eq) && (multDone>=tg.mult) && (fracDone>=tg.frac);
   const btn = document.getElementById("dailyClaimBtn");
 
   if(allDone && !d.claimed){
@@ -1035,9 +1080,7 @@ function rollFromChanceTable(table){
   }
   return table[0].r;
 }
-function pickFrom(arr){
-  return arr[Math.floor(Math.random()*arr.length)];
-}
+function pickFrom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function firstUnlockedZone(){
   for(const z of ZONES){
     if(unlocked[z.key]) return z.key;
@@ -1083,7 +1126,6 @@ function openDailyBlindBag(){
 
   alert(`🎁 Daily Blind Bag!\nDu fick: ${emoji}\nRarity: ${rarity.toUpperCase()}\nLades i ${zoneName} (${where}).`);
 }
-
 document.getElementById("dailyClaimBtn").addEventListener("click", openDailyBlindBag);
 
 /* =========================
@@ -1099,19 +1141,31 @@ function renderZoneSelect(){
     sel.appendChild(opt);
   }
 }
+
 function rarityClass(r){
   if(r === "uncommon") return "rar-uncommon";
   if(r === "rare") return "rar-rare";
   if(r === "epic") return "rar-epic";
   return "rar-common";
 }
+
 function zonedRng(zoneKey){
   const seed = seedFromString("zoo|" + todayKey() + "|" + zoneKey);
   return mulberry32(seed);
 }
+
 function renderHabitat(zoneKey){
   const hab = document.createElement("div");
   hab.className = "habitat";
+
+  // små theme-tweaks
+  if(zoneKey === "space"){
+    hab.style.background = "rgba(0,0,0,0.35)";
+    hab.style.border = "1px solid rgba(255,255,255,0.14)";
+  }
+  if(zoneKey === "valentine"){
+    hab.style.background = "rgba(255,255,255,0.55)";
+  }
 
   if(!unlocked[zoneKey]){
     const hint = document.createElement("div");
@@ -1225,13 +1279,13 @@ function renderZoo(){
 
     const sub = document.createElement("div");
     sub.className = "zoneSub";
-
     body.appendChild(sub);
     body.appendChild(renderHabitat(z.key));
 
     zoneDiv.appendChild(head);
     zoneDiv.appendChild(body);
 
+    // Locked overlay
     if(!unlocked[z.key] && z.key !== "forest"){
       const req = UNLOCK_REQ[z.key];
       const ov = document.createElement("div");
@@ -1244,19 +1298,30 @@ function renderZoo(){
       const okMult = (progress.mult||0) >= (req.mult||0);
       const okEq = (progress.eq||0) >= (req.eq||0);
 
-      box.innerHTML = `
-        <h4>${z.name} är låst 🔒</h4>
-        <div class="reqLine ${okStars ? "reqOk" : "reqNo"}">⭐ ${req.stars} stjärnor (spendera)</div>
-        <div class="reqLine ${okMult ? "reqOk" : "reqNo"}">✖️ Multiplikation: ${req.mult}</div>
-        <div class="reqLine ${okEq ? "reqOk" : "reqNo"}">🧮 Ekvationer: ${req.eq}</div>
-        <p style="margin-top:10px;">Uppdrag: <b>${req.label}</b></p>
-      `;
-      const btn = document.createElement("button");
-      btn.className = "btn";
-      btn.textContent = `Lås upp ${z.name} (10⭐)`;
-      btn.disabled = !canUnlock(z.key);
-      btn.onclick = () => unlockZone(z.key);
-      box.appendChild(btn);
+      if(z.key === "valentine" && !isValentineWindow()){
+        box.innerHTML = `
+          <h4>${z.name} är låst 🔒</h4>
+          <p style="margin-top:10px;">
+            💗 Detta är ett <b>limited</b> habitat.<br>
+            Du kan bara låsa upp det <b>12–15 februari</b>.<br>
+            (Har du låst upp det en gång så behåller du det.)
+          </p>
+        `;
+      } else {
+        box.innerHTML = `
+          <h4>${z.name} är låst 🔒</h4>
+          <div class="reqLine ${okStars ? "reqOk" : "reqNo"}">⭐ ${req.stars} stjärnor (spendera)</div>
+          <div class="reqLine ${okMult ? "reqOk" : "reqNo"}">✖️ Multiplikation: ${req.mult}</div>
+          <div class="reqLine ${okEq ? "reqOk" : "reqNo"}">🧮 Ekvationer: ${req.eq}</div>
+          <p style="margin-top:10px;">Uppdrag: <b>${req.label}</b></p>
+        `;
+        const btn = document.createElement("button");
+        btn.className = "btn";
+        btn.textContent = `Lås upp ${z.name} (10⭐)`;
+        btn.disabled = !canUnlock(z.key);
+        btn.onclick = () => unlockZone(z.key);
+        box.appendChild(btn);
+      }
 
       ov.appendChild(box);
       zoneDiv.appendChild(ov);
@@ -1270,10 +1335,7 @@ function renderZoo(){
    STORAGE MODAL
 ========================= */
 let activeStorageZone = null;
-
-function zoneName(zoneKey){
-  return ZONES.find(z=>z.key===zoneKey)?.name || zoneKey;
-}
+function zoneName(zoneKey){ return ZONES.find(z=>z.key===zoneKey)?.name || zoneKey; }
 
 function openStorageModal(zoneKey){
   activeStorageZone = zoneKey;
@@ -1284,7 +1346,6 @@ function closeStorageModal(){
   document.getElementById("storageModal").style.display = "none";
   activeStorageZone = null;
 }
-
 document.getElementById("storageClose").addEventListener("click", closeStorageModal);
 document.getElementById("storageModal").addEventListener("click", (e)=>{
   if(e.target.id === "storageModal") closeStorageModal();
@@ -1313,8 +1374,10 @@ function renderStorageModal(){
   penTiles.innerHTML = "";
   storeTiles.innerHTML = "";
 
-  document.getElementById("penEmpty").style.display = pen.length === 0 ? "block" : "none";
-  document.getElementById("storeEmpty").style.display = store.length === 0 ? "block" : "none";
+  const penEmpty = document.getElementById("penEmpty");
+  const storeEmpty = document.getElementById("storeEmpty");
+  penEmpty.style.display = pen.length === 0 ? "block" : "none";
+  storeEmpty.style.display = store.length === 0 ? "block" : "none";
 
   pen.forEach((obj, idx)=>{
     const t = document.createElement("div");
@@ -1373,7 +1436,7 @@ function renderShop(){
   } else {
     const next = nextLockedZoneKey();
     if(!next){
-      note.innerHTML = `Alla områden är upplåsta ✅`;
+      note.innerHTML = `Alla områden i kedjan är upplåsta ✅ (Limited habitats kan dyka upp ibland!)`;
     } else {
       const zn = ZONES.find(z=>z.key===next).name;
       note.innerHTML = `Nästa låsta område: <b>${zn}</b>. Kräver 10 ⭐ + uppdrag.`;
@@ -1381,36 +1444,53 @@ function renderShop(){
   }
 
   if(mode === "unlock"){
+    // Kedjan (utan Valentine)
     const next = nextLockedZoneKey();
-    if(!next){
+    if(next){
+      const zObj = ZONES.find(z=>z.key===next);
+      const btn = document.createElement("button");
+      btn.className = "shopItemBtn";
+      btn.textContent = `🔓 Lås upp ${zObj.icon} ${zObj.name} (${PRICES.unlock}⭐)`;
+      btn.disabled = !canUnlock(next);
+      btn.onclick = () => unlockZone(next);
+
+      const req = UNLOCK_REQ[next];
+      const info = document.createElement("div");
+      info.className = "muted";
+      info.style.marginTop = "8px";
+      info.textContent = `Krav: 10⭐ + ${req.label}`;
+
+      items.appendChild(btn);
+      items.appendChild(info);
+    } else {
       const done = document.createElement("div");
       done.className = "muted";
-      done.textContent = "Alla områden är redan upplåsta.";
+      done.textContent = "Alla områden i upplåsningskedjan är upplåsta ✅";
       items.appendChild(done);
-      return;
     }
-    if(next === "forest"){
-      const msg = document.createElement("div");
-      msg.className = "muted";
-      msg.textContent = "Skogen är alltid upplåst.";
-      items.appendChild(msg);
-      return;
+
+    // Extra: Valentine-knapp under eventfönstret
+    if(isValentineWindow() && !unlocked.valentine){
+      const sep = document.createElement("div");
+      sep.className = "muted";
+      sep.style.marginTop = "10px";
+      sep.textContent = "Limited event:";
+      items.appendChild(sep);
+
+      const btnV = document.createElement("button");
+      btnV.className = "shopItemBtn";
+      btnV.textContent = `💗 Lås upp Alla hjärtans (${PRICES.unlock}⭐)`;
+      btnV.disabled = !canUnlock("valentine");
+      btnV.onclick = () => unlockZone("valentine");
+      items.appendChild(btnV);
+
+      const infoV = document.createElement("div");
+      infoV.className = "muted";
+      infoV.style.marginTop = "6px";
+      infoV.textContent = "Kan bara låsas upp 12–15 feb. (Trophy: behålls när du väl fått den.)";
+      items.appendChild(infoV);
     }
-    const zObj = ZONES.find(z=>z.key===next);
-    const btn = document.createElement("button");
-    btn.className = "shopItemBtn";
-    btn.textContent = `🔓 Lås upp ${zObj.icon} ${zObj.name} (${PRICES.unlock}⭐)`;
-    btn.disabled = !canUnlock(next);
-    btn.onclick = () => unlockZone(next);
 
-    const req = UNLOCK_REQ[next];
-    const info = document.createElement("div");
-    info.className = "muted";
-    info.style.marginTop = "8px";
-    info.textContent = `Krav: 10⭐ + ${req.label}`;
-
-    items.appendChild(btn);
-    items.appendChild(info);
     return;
   }
 
@@ -1468,25 +1548,8 @@ function renderShop(){
   }
 }
 
-/* =========================
-   ACTIONS: KÖP
-========================= */
-function buyAnimal(zoneKey, emoji, rarity){
-  if(stars < PRICES.animal) return;
-  stars -= PRICES.animal;
-
-  const placed = addAnimalToZone(zoneKey, { emoji, rarity: rarity || "common" });
-
-  saveState();
-  updateStarsUI();
-  renderZoo();
-  renderShop();
-
-  const where = placed.placed === "storage" ? " (hamnade i LAGER eftersom hagen är full)" : "";
-  setToast(`Du köpte ${emoji} till ${ZONES.find(z=>z.key===zoneKey).name}!${where}`);
-}
-
 function placeDecorInGrid(zoneKey, emoji){
+  ensureZoneArrays(zoneKey);
   const grid = decorGridByZone[zoneKey] || Array(36).fill(null);
 
   const empty = [];
@@ -1501,6 +1564,21 @@ function placeDecorInGrid(zoneKey, emoji){
   return true;
 }
 
+function buyAnimal(zoneKey, emoji, rarity){
+  if(stars < PRICES.animal) return;
+  stars -= PRICES.animal;
+
+  const placed = addAnimalToZone(zoneKey, { emoji, rarity: rarity || "common" });
+
+  saveState();
+  updateStarsUI();
+  renderZoo();
+  renderShop();
+
+  const where = placed.placed === "storage" ? " (hamnade i LAGER eftersom hagen är full)" : "";
+  setToast(`Du köpte ${emoji} till ${zoneName(zoneKey)}!${where}`);
+}
+
 function buyDecor(zoneKey, emoji){
   if(stars < PRICES.decor) return;
   const ok = placeDecorInGrid(zoneKey, emoji);
@@ -1513,7 +1591,7 @@ function buyDecor(zoneKey, emoji){
   updateStarsUI();
   renderZoo();
   renderShop();
-  setToast(`Dekoration ${emoji} placerades i ${ZONES.find(z=>z.key===zoneKey).name}!`);
+  setToast(`Dekoration ${emoji} placerades i ${zoneName(zoneKey)}!`);
 }
 
 function buyBlindBag(zoneKey){
@@ -1536,7 +1614,7 @@ function buyBlindBag(zoneKey){
 }
 
 /* =========================
-   TODAY SUMMARY (from today.js)
+   TODAY-SUMMARY (today.js)
 ========================= */
 function renderTodaySummary(){
   const list = document.getElementById("todayList");
@@ -1545,7 +1623,7 @@ function renderTodaySummary(){
   const t = (window.mzLoadToday ? window.mzLoadToday() : null);
 
   if(!t){
-    list.innerHTML = `<li class="muted">Ingen dagslogg ännu.</li>`;
+    list.innerHTML = `<li class="muted">Ingen dagslogg ännu (today.js saknas eller hann inte ladda).</li>`;
     return;
   }
 
@@ -1572,6 +1650,7 @@ function renderTodaySummary(){
 
   list.innerHTML = html;
 }
+document.getElementById("todayRefreshBtn").addEventListener("click", renderTodaySummary);
 
 /* =========================
    INIT / EVENTS
@@ -1618,10 +1697,8 @@ document.getElementById("resetBtn").addEventListener("click", () => {
   setToast("Allt är nollställt.");
 });
 
-document.getElementById("todayRefreshBtn").addEventListener("click", renderTodaySummary);
-
-/* ✅ Kör först när DOM finns, och efter att today.js/daily.js är laddade */
-window.addEventListener("DOMContentLoaded", init);
+// Kör först när DOM är redo (och externa scripts hann laddas)
+document.addEventListener("DOMContentLoaded", init);
 </script>
 
 </body>
