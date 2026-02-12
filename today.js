@@ -1,9 +1,13 @@
 /* =========================================================
    Mattezoo - Today Log (today.js)
    Syfte: Visa "I dag har jag gjort" på index.html
-   - Ekvationer: räknare
-   - Bråk↔Decimal: räknare
-   - Multiplikation: tabeller per tabell (t.ex. 3:ans tabell: 6 ggr)
+
+   Loggar:
+   - Ekvationer: räknare (counts.eq)
+   - Bråk↔Decimal: räknare (counts.frac)
+   - Prefix – para ihop: räknare (counts.prefix)
+   - Enhetsomvandling: räknare (counts.unit)
+   - Multiplikation: tabeller per tabell (tables["3"] = 6)
 
    Nyckel i localStorage:
      "mathZooToday"
@@ -11,6 +15,7 @@
 
 (function () {
   const KEY_TODAY = "mathZooToday";
+  const COUNT_TYPES = ["eq", "frac", "prefix", "unit"];
 
   function todayKey() {
     // sv-SE ger YYYY-MM-DD
@@ -21,6 +26,21 @@
     try { return JSON.parse(json); } catch { return fallback; }
   }
 
+  function normalizeToday(obj) {
+    if (!obj || typeof obj !== "object") obj = {};
+
+    if (typeof obj.date !== "string") obj.date = todayKey();
+
+    if (!obj.counts || typeof obj.counts !== "object") obj.counts = {};
+    if (!obj.tables || typeof obj.tables !== "object") obj.tables = {};
+
+    for (const t of COUNT_TYPES) {
+      if (typeof obj.counts[t] !== "number") obj.counts[t] = 0;
+    }
+
+    return obj;
+  }
+
   function ensureTodayExists() {
     const t = todayKey();
     let obj = safeParse(localStorage.getItem(KEY_TODAY) || "null", null);
@@ -28,19 +48,17 @@
     if (!obj || obj.date !== t) {
       obj = {
         date: t,
-        counts: { eq: 0, frac: 0 },
-        tables: {} // { "3": 6, "6": 2, ... }
+        counts: { eq: 0, frac: 0, prefix: 0, unit: 0 },
+        tables: {}
       };
+      obj = normalizeToday(obj);
       localStorage.setItem(KEY_TODAY, JSON.stringify(obj));
+      return obj;
     }
 
-    // härdning om någon gammal version ligger kvar
-    if (!obj.counts || typeof obj.counts !== "object") obj.counts = { eq: 0, frac: 0 };
-    if (!obj.tables || typeof obj.tables !== "object") obj.tables = {};
-
-    if (typeof obj.counts.eq !== "number") obj.counts.eq = 0;
-    if (typeof obj.counts.frac !== "number") obj.counts.frac = 0;
-
+    // bakåtkompat + härdning
+    obj = normalizeToday(obj);
+    localStorage.setItem(KEY_TODAY, JSON.stringify(obj));
     return obj;
   }
 
@@ -49,17 +67,20 @@
   }
 
   function mzSaveToday(obj) {
+    obj = normalizeToday(obj);
     localStorage.setItem(KEY_TODAY, JSON.stringify(obj));
   }
 
+  // Räknare: eq / frac / prefix / unit
   function mzTodayIncrement(type, amount = 1) {
     const obj = ensureTodayExists();
-    if (!obj.counts || obj.counts[type] === undefined) return;
+    if (!COUNT_TYPES.includes(type)) return;
+
     obj.counts[type] += amount;
     mzSaveToday(obj);
   }
 
-  // Viktig: logga tabell (t.ex. 3, 6, 9...)
+  // Multiplikation: logga tabell (t.ex. 3, 6, 9...)
   function mzTodayAddTable(tableNumber, amount = 1) {
     const obj = ensureTodayExists();
 
@@ -73,10 +94,14 @@
     mzSaveToday(obj);
   }
 
-  // (valfritt) om du vill kunna nolla dagens logg manuellt
+  // (valfritt) nolla dagens logg manuellt
   function mzTodayReset() {
     const t = todayKey();
-    const obj = { date: t, counts: { eq: 0, frac: 0 }, tables: {} };
+    const obj = {
+      date: t,
+      counts: { eq: 0, frac: 0, prefix: 0, unit: 0 },
+      tables: {}
+    };
     localStorage.setItem(KEY_TODAY, JSON.stringify(obj));
     return obj;
   }
@@ -84,7 +109,7 @@
   // Exponera globalt
   window.mzLoadToday = mzLoadToday;
   window.mzSaveToday = mzSaveToday;
-  window.mzTodayIncrement = mzTodayIncrement; // eq, frac
+  window.mzTodayIncrement = mzTodayIncrement; // eq, frac, prefix, unit
   window.mzTodayAddTable = mzTodayAddTable;   // multiplikation per tabell
   window.mzTodayReset = mzTodayReset;
 })();
