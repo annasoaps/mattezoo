@@ -181,7 +181,7 @@
     font-weight:800;
   }
 
-  /* NEW: Habitat canvas (slumpad placering) */
+  /* Habitat canvas */
   .habitat{
     position:relative;
     height:230px;
@@ -190,7 +190,6 @@
     background:rgba(255,255,255,0.45);
     overflow:hidden;
   }
-  /* valfri “stig runt kanten” */
   .habitat::before{
     content:"";
     position:absolute;
@@ -504,22 +503,20 @@
         <span class="muted">Just nu heter ditt zoo: </span>
         <b id="zooNameText">Mattezoo</b>
       </div>
-     <hr style="border:none; border-top:1px solid #eee; margin:14px 0;">
+      <hr style="border:none; border-top:1px solid #eee; margin:14px 0;">
 
-<b>📌 I dag har jag gjort</b>
-<div class="muted" style="margin-top:6px;">
-  Visar vad du tränat idag. Tabeller listas per tabell.
-</div>
+      <b>📌 I dag har jag gjort</b>
+      <div class="muted" style="margin-top:6px;">
+        Visar vad du tränat idag. Tabeller listas per tabell.
+      </div>
 
-<ul id="todayList" style="margin:10px 0 0; padding-left:18px; line-height:1.5;"></ul>
+      <ul id="todayList" style="margin:10px 0 0; padding-left:18px; line-height:1.5;"></ul>
 
-<div class="tiny" style="margin-top:10px;">
-  <button class="btn secondary" id="todayRefreshBtn">Uppdatera</button>
-</div>
-
+      <div class="tiny" style="margin-top:10px;">
+        <button class="btn secondary" id="todayRefreshBtn">Uppdatera</button>
+      </div>
     </div>
   </div>
-
 
   <div class="card" style="margin-top:14px;">
     <h2 style="margin:0 0 6px;">🐾 Ditt zoo</h2>
@@ -622,6 +619,10 @@
   </div>
 </div>
 
+<!-- ✅ Ladda externa scripts på rätt sätt (INTE inne i ett <script>-block) -->
+<script src="daily.js"></script>
+<script src="today.js"></script>
+
 <script>
 /* =========================
    STORAGE NYCKLAR
@@ -673,7 +674,7 @@ const PRICES = {
 /* =========================
    HAGE/LAGER SETTINGS
 ========================= */
-const PEN_MAX = 24; // max djur som får ligga i hagen per zon
+const PEN_MAX = 24;
 
 /* =========================
    DJURPOOLER + RARITET
@@ -711,7 +712,6 @@ const ANIMALS_POOL = {
   }
 };
 
-// Shop blind bag rarity
 const RARITY_CHANCE = [
   { r:"common",   p:0.70 },
   { r:"uncommon", p:0.20 },
@@ -719,7 +719,6 @@ const RARITY_CHANCE = [
   { r:"epic",     p:0.01 }
 ];
 
-// Daily blind bag rarity (garanterat bättre)
 const DAILY_RARITY_CHANCE = [
   { r:"rare",     p:0.70 },
   { r:"epic",     p:0.25 },
@@ -743,16 +742,10 @@ const DECOR_BY_ZONE = {
 let stars = 0;
 let zooName = "Mattezoo";
 
-// upplåsning (börjar med skog)
 let unlocked = { forest:true, savannah:false, ocean:false, ice:false, fantasy:false };
-
-// djur i HAGE per zon: [{emoji, rarity}]
 let animalsByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[] };
-
-// djur i LAGER per zon: [{emoji, rarity}]
 let storageByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[] };
 
-// dekor-grid per zon: array(36) med null eller emoji (behålls i storage)
 let decorGridByZone = {
   forest:   Array(36).fill(null),
   savannah: Array(36).fill(null),
@@ -761,7 +754,6 @@ let decorGridByZone = {
   fantasy:  Array(36).fill(null)
 };
 
-// progress
 let progress = { mult:0, eq:0 };
 
 /* =========================
@@ -770,7 +762,6 @@ let progress = { mult:0, eq:0 };
 function safeParse(json, fallback){
   try{ return JSON.parse(json); }catch{ return fallback; }
 }
-
 function normalizeZonesObj(obj, fallbackFactory){
   const out = fallbackFactory();
   if(obj && typeof obj === "object"){
@@ -779,6 +770,28 @@ function normalizeZonesObj(obj, fallbackFactory){
     }
   }
   return out;
+}
+
+function ensureZoneArrays(zoneKey){
+  if(!Array.isArray(animalsByZone[zoneKey])) animalsByZone[zoneKey] = [];
+  if(!Array.isArray(storageByZone[zoneKey])) storageByZone[zoneKey] = [];
+}
+function enforcePenLimit(zoneKey){
+  ensureZoneArrays(zoneKey);
+  while(animalsByZone[zoneKey].length > PEN_MAX){
+    const moved = animalsByZone[zoneKey].pop();
+    storageByZone[zoneKey].push(moved);
+  }
+}
+function addAnimalToZone(zoneKey, obj){
+  ensureZoneArrays(zoneKey);
+  if(animalsByZone[zoneKey].length < PEN_MAX){
+    animalsByZone[zoneKey].push(obj);
+    return { placed:"pen" };
+  } else {
+    storageByZone[zoneKey].push(obj);
+    return { placed:"storage" };
+  }
 }
 
 function loadState(){
@@ -793,8 +806,6 @@ function loadState(){
     if(parsed && typeof parsed === "object"){
       unlocked = { ...unlocked, ...parsed };
     }
-  } else {
-    unlocked = { forest:true, savannah:false, ocean:false, ice:false, fantasy:false };
   }
 
   const a = localStorage.getItem(KEY_ANIMALS);
@@ -828,7 +839,6 @@ function loadState(){
     }
   }
 
-  // Säkerställ att inget ligger "över max" i hagen: flytta överskott till lager
   for(const z of ZONES){
     enforcePenLimit(z.key);
   }
@@ -865,36 +875,7 @@ function updateProgressUI(){
 }
 
 /* =========================
-   HAGE/LAGER LOGIK
-========================= */
-function ensureZoneArrays(zoneKey){
-  if(!Array.isArray(animalsByZone[zoneKey])) animalsByZone[zoneKey] = [];
-  if(!Array.isArray(storageByZone[zoneKey])) storageByZone[zoneKey] = [];
-}
-
-// Flytta överskott från hage -> lager om någon har "för många"
-function enforcePenLimit(zoneKey){
-  ensureZoneArrays(zoneKey);
-  while(animalsByZone[zoneKey].length > PEN_MAX){
-    const moved = animalsByZone[zoneKey].pop(); // flytta senaste till lager
-    storageByZone[zoneKey].push(moved);
-  }
-}
-
-// Lägg till djur: om hagen är full, parkera i lager automatiskt
-function addAnimalToZone(zoneKey, obj){
-  ensureZoneArrays(zoneKey);
-  if(animalsByZone[zoneKey].length < PEN_MAX){
-    animalsByZone[zoneKey].push(obj);
-    return { placed:"pen" };
-  } else {
-    storageByZone[zoneKey].push(obj);
-    return { placed:"storage" };
-  }
-}
-
-/* =========================
-   UNLOCK LOGIK
+   UNLOCK
 ========================= */
 function nextLockedZoneKey(){
   for(const z of ZONES){
@@ -926,10 +907,10 @@ function unlockZone(zoneKey){
 }
 
 /* =========================
-   DAILY: datum + varierande plan
+   DAILY: plan + UI
 ========================= */
 function todayKey(){
-  return new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD
+  return new Date().toLocaleDateString("sv-SE");
 }
 function seedFromString(s){
   let h = 2166136261;
@@ -1077,7 +1058,6 @@ function openDailyBlindBag(){
   if(!allDone || d.claimed) return;
 
   const zoneKey = firstUnlockedZone();
-
   const rarity = rollFromChanceTable(DAILY_RARITY_CHANCE);
 
   let pool = ANIMALS_POOL[zoneKey]?.[rarity];
@@ -1107,7 +1087,7 @@ function openDailyBlindBag(){
 document.getElementById("dailyClaimBtn").addEventListener("click", openDailyBlindBag);
 
 /* =========================
-   ZOO RENDER (NY)
+   ZOO RENDER
 ========================= */
 function renderZoneSelect(){
   const sel = document.getElementById("zoneSelect");
@@ -1125,13 +1105,10 @@ function rarityClass(r){
   if(r === "epic") return "rar-epic";
   return "rar-common";
 }
-
-// deterministisk slump per zon + dagens datum
 function zonedRng(zoneKey){
   const seed = seedFromString("zoo|" + todayKey() + "|" + zoneKey);
   return mulberry32(seed);
 }
-
 function renderHabitat(zoneKey){
   const hab = document.createElement("div");
   hab.className = "habitat";
@@ -1162,7 +1139,6 @@ function renderHabitat(zoneKey){
     return hab;
   }
 
-  // rita max, men djuren är ändå "hanterade" via hage/lager
   const maxRender = 28;
   const toRender = things.slice(0, maxRender);
 
@@ -1233,7 +1209,7 @@ function renderZoo(){
 
     const storageBtn = document.createElement("button");
     storageBtn.textContent = "Lager";
-    storageBtn.disabled = !unlocked[z.key]; // bara om upplåst
+    storageBtn.disabled = !unlocked[z.key];
     storageBtn.onclick = () => openStorageModal(z.key);
 
     meta.appendChild(pill1);
@@ -1249,7 +1225,6 @@ function renderZoo(){
 
     const sub = document.createElement("div");
     sub.className = "zoneSub";
-   
 
     body.appendChild(sub);
     body.appendChild(renderHabitat(z.key));
@@ -1292,7 +1267,7 @@ function renderZoo(){
 }
 
 /* =========================
-   STORAGE MODAL LOGIK
+   STORAGE MODAL
 ========================= */
 let activeStorageZone = null;
 
@@ -1305,7 +1280,6 @@ function openStorageModal(zoneKey){
   renderStorageModal();
   document.getElementById("storageModal").style.display = "flex";
 }
-
 function closeStorageModal(){
   document.getElementById("storageModal").style.display = "none";
   activeStorageZone = null;
@@ -1331,30 +1305,23 @@ function renderStorageModal(){
   const pen = animalsByZone[activeStorageZone];
   const store = storageByZone[activeStorageZone];
 
-  const title = document.getElementById("storageTitle");
-  title.textContent = `🧺 Lager: ${zoneName(activeStorageZone)}`;
-
-  const info = document.getElementById("storageInfo");
-  info.textContent = `Hage: ${pen.length}/${PEN_MAX} | Lager: ${store.length}`;
+  document.getElementById("storageTitle").textContent = `🧺 Lager: ${zoneName(activeStorageZone)}`;
+  document.getElementById("storageInfo").textContent = `Hage: ${pen.length}/${PEN_MAX} | Lager: ${store.length}`;
 
   const penTiles = document.getElementById("penTiles");
   const storeTiles = document.getElementById("storeTiles");
   penTiles.innerHTML = "";
   storeTiles.innerHTML = "";
 
-  const penEmpty = document.getElementById("penEmpty");
-  const storeEmpty = document.getElementById("storeEmpty");
-  penEmpty.style.display = pen.length === 0 ? "block" : "none";
-  storeEmpty.style.display = store.length === 0 ? "block" : "none";
+  document.getElementById("penEmpty").style.display = pen.length === 0 ? "block" : "none";
+  document.getElementById("storeEmpty").style.display = store.length === 0 ? "block" : "none";
 
-  // HAGE: klick -> parkera i lager
   pen.forEach((obj, idx)=>{
     const t = document.createElement("div");
     t.className = `aTile ${rarityClass(obj.rarity)}`;
     t.title = `Parkera (${(obj.rarity||"common").toUpperCase()})`;
     t.textContent = obj.emoji;
     t.addEventListener("click", ()=>{
-      // flytta pen -> store
       const moved = pen.splice(idx, 1)[0];
       store.push(moved);
       saveState();
@@ -1365,7 +1332,6 @@ function renderStorageModal(){
     penTiles.appendChild(t);
   });
 
-  // LAGER: klick -> flytta till hage (om plats)
   store.forEach((obj, idx)=>{
     const t = document.createElement("div");
     t.className = `aTile ${rarityClass(obj.rarity)}`;
@@ -1520,7 +1486,6 @@ function buyAnimal(zoneKey, emoji, rarity){
   setToast(`Du köpte ${emoji} till ${ZONES.find(z=>z.key===zoneKey).name}!${where}`);
 }
 
-// grid-logik för dekor (36 rutor) men visas spritt
 function placeDecorInGrid(zoneKey, emoji){
   const grid = decorGridByZone[zoneKey] || Array(36).fill(null);
 
@@ -1571,6 +1536,44 @@ function buyBlindBag(zoneKey){
 }
 
 /* =========================
+   TODAY SUMMARY (from today.js)
+========================= */
+function renderTodaySummary(){
+  const list = document.getElementById("todayList");
+  if(!list) return;
+
+  const t = (window.mzLoadToday ? window.mzLoadToday() : null);
+
+  if(!t){
+    list.innerHTML = `<li class="muted">Ingen dagslogg ännu.</li>`;
+    return;
+  }
+
+  const eq   = t.counts?.eq   || 0;
+  const frac = t.counts?.frac || 0;
+
+  const tables = t.tables || {};
+  const entries = Object.entries(tables)
+    .filter(([_,n]) => (n || 0) > 0)
+    .sort((a,b) => Number(a[0]) - Number(b[0]));
+
+  let html = "";
+  html += `<li><b>Ekvationer:</b> ${eq}</li>`;
+  html += `<li><b>Bråk↔Decimal:</b> ${frac}</li>`;
+  html += `<li style="margin-top:6px;"><b>Tabeller</b></li>`;
+
+  if(entries.length === 0){
+    html += `<li class="muted" style="margin-left:14px;">Inga tabeller ännu idag.</li>`;
+  } else {
+    for(const [table, n] of entries){
+      html += `<li style="margin-left:14px;">• <b>${table}:ans tabell</b>: ${n}</li>`;
+    }
+  }
+
+  list.innerHTML = html;
+}
+
+/* =========================
    INIT / EVENTS
 ========================= */
 function init(){
@@ -1583,7 +1586,6 @@ function init(){
   renderShop();
   updateDailyUI();
   renderTodaySummary();
-
 }
 
 document.getElementById("saveNameBtn").addEventListener("click", () => {
@@ -1615,68 +1617,12 @@ document.getElementById("resetBtn").addEventListener("click", () => {
   init();
   setToast("Allt är nollställt.");
 });
-  <script src="daily.js"></script>
-<script src="today.js"></script>
-  
-init();
-function renderTodaySummary(){
-  const list = document.getElementById("todayList");
-  if(!list) return;
 
-  // Vi läser från today.js om den finns
-  const t = (window.mzLoadToday ? window.mzLoadToday() : null);
-
-  if(!t){
-    list.innerHTML = `<li class="muted">Ingen dagslogg ännu (today.js saknas).</li>`;
-    return;
-  }
-
-  const eq   = t.counts?.eq   || 0;
-  const frac = t.counts?.frac || 0;
-
-  // Tabeller: objekt t.tables = { "3": 6, "6": 2, ... }
-  const tables = t.tables || {};
-  const entries = Object.entries(tables)
-    .filter(([_,n]) => (n || 0) > 0)
-    .sort((a,b) => Number(a[0]) - Number(b[0]));
-
-  let html = "";
-  html += `<li><b>Ekvationer:</b> ${eq}</li>`;
-  html += `<li><b>Bråk↔Decimal:</b> ${frac}</li>`;
-
-  html += `<li style="margin-top:6px;"><b>Tabeller</b></li>`;
-
-  if(entries.length === 0){
-    html += `<li class="muted" style="margin-left:14px;">Inga tabeller ännu idag.</li>`;
-  } else {
-    for(const [table, n] of entries){
-      html += `<li style="margin-left:14px;">• <b>${table}:ans tabell</b>: ${n}</li>`;
-    }
-  }
-
-  list.innerHTML = html;
-}
 document.getElementById("todayRefreshBtn").addEventListener("click", renderTodaySummary);
 
-/* =========================
-   KONTRAKT FÖR SPEL-SIDORNA
-========================= */
-/*
-  I spel-sidorna ska du uppdatera två saker vid "vinst" (A-läget):
-
-  A) Stjärnor (om spelet ger stjärnor):
-     let s = parseInt(localStorage.getItem("mathZooStars") || "0", 10);
-     s += 1; // eller 2 etc
-     localStorage.setItem("mathZooStars", JSON.stringify(s));
-
-  B) Upplåsningsräknare (mathZooProgress) + Dagens uppdrag (mathZooDaily)
-     mzDailyIncrement("mult"/"eq"/"frac", 1);
-
-  OBS: Lager-systemet sköts bara här på index-sidan.
-  Spel-sidorna behöver INTE veta något om lager.
-*/
+/* ✅ Kör först när DOM finns, och efter att today.js/daily.js är laddade */
+window.addEventListener("DOMContentLoaded", init);
 </script>
-
 
 </body>
 </html>
