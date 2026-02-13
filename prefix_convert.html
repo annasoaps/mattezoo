@@ -529,8 +529,8 @@ function finishRound(){
   const earned = awardStarsForLevel();
   addStars(earned);
 
-  safeDailyIncrement("prefix", 1);
-  safeTodayIncrement("prefix", 1);
+  safeDailyIncrement("unit", 1);
+  safeTodayIncrement("unit", 1);
 
   feedbackDiv.textContent = `🎉 Omgång klar! Du fick ${earned} ⭐.`;
   feedbackDiv.className = "ok";
