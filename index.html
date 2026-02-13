@@ -206,6 +206,23 @@
     line-height:1;
     white-space:nowrap;
   }
+  /* === Animal movement (Level 2) === */
+.zThing.zAnimal{
+  will-change: transform, left, top;
+}
+
+.zThing.zAnimal .zEmoji{
+  display:inline-block;
+  animation: zBob 2.8s ease-in-out infinite;
+}
+
+/* lite “liv” utan att flytta dekorationer */
+@keyframes zBob{
+  0%   { transform: translateY(0) rotate(0deg); }
+  50%  { transform: translateY(-2px) rotate(1deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+
 
   /* Zone counts + storage button */
   .zoneMeta{
