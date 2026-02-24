@@ -206,23 +206,20 @@
     line-height:1;
     white-space:nowrap;
   }
+
   /* === Animal movement (Level 2) === */
-.zThing.zAnimal{
-  will-change: transform, left, top;
-}
-
-.zThing.zAnimal .zEmoji{
-  display:inline-block;
-  animation: zBob 2.8s ease-in-out infinite;
-}
-
-/* lite “liv” utan att flytta dekorationer */
-@keyframes zBob{
-  0%   { transform: translateY(0) rotate(0deg); }
-  50%  { transform: translateY(-2px) rotate(1deg); }
-  100% { transform: translateY(0) rotate(0deg); }
-}
-
+  .zThing.zAnimal{
+    will-change: transform, left, top;
+  }
+  .zThing.zAnimal .zEmoji{
+    display:inline-block;
+    animation: zBob 2.8s ease-in-out infinite;
+  }
+  @keyframes zBob{
+    0%   { transform: translateY(0) rotate(0deg); }
+    50%  { transform: translateY(-2px) rotate(1deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+  }
 
   /* Zone counts + storage button */
   .zoneMeta{
@@ -1174,6 +1171,127 @@ function zonedRng(zoneKey){
   return mulberry32(seed);
 }
 
+/* =========================
+   ZOO ANIMATION (Level 2)
+   - Only animals move
+   - One global RAF loop
+========================= */
+const ZOO_ANIM = {
+  running: false,
+  rafId: null,
+  lastT: 0,
+  maxAnimalsPerHabitat: 28, // matchar din maxRender
+  speedPxPerSec: 14,        // justera: 10–20 är lagom
+  turnJitter: 0.06          // hur “fladdrig” riktningen är
+};
+
+function zClamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+function zooStartAnimLoop(){
+  if(ZOO_ANIM.running) return;
+  ZOO_ANIM.running = true;
+  ZOO_ANIM.lastT = performance.now();
+
+  const tick = (tNow)=>{
+    const dt = Math.min(0.05, (tNow - ZOO_ANIM.lastT) / 1000); // max 50ms
+    ZOO_ANIM.lastT = tNow;
+
+    // Loopa alla habitat som finns på sidan
+    const habitats = document.querySelectorAll(".habitat");
+    habitats.forEach(hab => animateHabitatStep(hab, dt));
+
+    ZOO_ANIM.rafId = requestAnimationFrame(tick);
+  };
+
+  ZOO_ANIM.rafId = requestAnimationFrame(tick);
+}
+
+function zooStopAnimLoop(){
+  ZOO_ANIM.running = false;
+  if(ZOO_ANIM.rafId) cancelAnimationFrame(ZOO_ANIM.rafId);
+  ZOO_ANIM.rafId = null;
+}
+
+// ✅ Punkt 4: pausa när fliken inte syns (sparar CPU)
+document.addEventListener("visibilitychange", ()=>{
+  if(document.hidden) zooStopAnimLoop();
+  else zooStartAnimLoop();
+});
+
+function animateHabitatStep(hab, dt){
+  // Hämta djuren i habitatet
+  const animals = hab.querySelectorAll(".zThing.zAnimal");
+  if(!animals.length) return;
+
+  const rect = hab.getBoundingClientRect();
+  const w = rect.width;
+  const h = rect.height;
+
+  // “Safe zone” så de inte går in i kanten
+  const pad = 18; // px
+  const minX = pad;
+  const maxX = w - pad;
+  const minY = pad;
+  const maxY = h - pad;
+
+  animals.forEach(el => {
+    // init om saknas
+    if(!el.dataset.ax){
+      // starta från befintlig left/top (%)
+      const lp = parseFloat(el.style.left || "50");
+      const tp = parseFloat(el.style.top  || "50");
+      const x0 = (lp/100) * w;
+      const y0 = (tp/100) * h;
+
+      // slumpad riktning
+      const ang = Math.random() * Math.PI * 2;
+      el.dataset.ax = String(zClamp(x0, minX, maxX));
+      el.dataset.ay = String(zClamp(y0, minY, maxY));
+      el.dataset.vx = String(Math.cos(ang));
+      el.dataset.vy = String(Math.sin(ang));
+
+      // bob desync
+      const inner = el.querySelector(".zEmoji");
+      if(inner) inner.style.animationDelay = (Math.random()*1.8).toFixed(2) + "s";
+    }
+
+    let x = parseFloat(el.dataset.ax);
+    let y = parseFloat(el.dataset.ay);
+    let vx = parseFloat(el.dataset.vx);
+    let vy = parseFloat(el.dataset.vy);
+
+    // liten slump i riktningen ibland (så de inte går spikrakt för evigt)
+    const jitter = ZOO_ANIM.turnJitter;
+    vx += (Math.random()*2 - 1) * jitter * dt;
+    vy += (Math.random()*2 - 1) * jitter * dt;
+
+    // normalisera riktning
+    const len = Math.hypot(vx, vy) || 1;
+    vx /= len; vy /= len;
+
+    // flytta
+    const sp = ZOO_ANIM.speedPxPerSec;
+    x += vx * sp * dt;
+    y += vy * sp * dt;
+
+    // studs
+    if(x <= minX){ x = minX; vx = Math.abs(vx); }
+    if(x >= maxX){ x = maxX; vx = -Math.abs(vx); }
+    if(y <= minY){ y = minY; vy = Math.abs(vy); }
+    if(y >= maxY){ y = maxY; vy = -Math.abs(vy); }
+
+    // spara tillbaka
+    el.dataset.ax = String(x);
+    el.dataset.ay = String(y);
+    el.dataset.vx = String(vx);
+    el.dataset.vy = String(vy);
+
+    // skriv till DOM (procent så layouten skalar)
+    el.style.left = ((x / w) * 100).toFixed(3) + "%";
+    el.style.top  = ((y / h) * 100).toFixed(3) + "%";
+  });
+}
+
 function renderHabitat(zoneKey){
   const hab = document.createElement("div");
   hab.className = "habitat";
@@ -1218,7 +1336,12 @@ function renderHabitat(zoneKey){
   toRender.forEach((t) => {
     const el = document.createElement("div");
     el.className = "zThing";
-    el.textContent = t.emoji;
+
+    // wrapper så vi kan animera bob utan att störa position/translate
+    const span = document.createElement("span");
+    span.className = "zEmoji";
+    span.textContent = t.emoji;
+    el.appendChild(span);
 
     const x = 10 + rnd()*80;
     const y = 12 + rnd()*74;
@@ -1230,6 +1353,7 @@ function renderHabitat(zoneKey){
     el.style.fontSize = size + "px";
 
     if(t.type === "animal"){
+      el.classList.add("zAnimal");
       el.style.padding = "2px 6px";
       el.style.borderRadius = "12px";
       el.classList.add(rarityClass(t.rarity));
@@ -1686,6 +1810,9 @@ function init(){
   renderShop();
   updateDailyUI();
   renderTodaySummary();
+
+  // ✅ Starta rörelse-loopen en gång (Level 2)
+  zooStartAnimLoop();
 }
 
 document.getElementById("saveNameBtn").addEventListener("click", () => {
