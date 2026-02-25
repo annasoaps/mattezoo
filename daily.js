@@ -98,7 +98,7 @@
 
     const fracTarget = includeFrac ? 1 : 0;                 // 1 eller 0
     const prefixTarget = includePrefix ? randInt(rnd, 3, 6) : 0; // 3–6
-    const unitTarget = includeUnit ? randInt(rnd, 4, 8) : 0;     // 4–8
+    const unitTarget = includeUnit ? randInt(rnd, 3, 6) : 0;     // 3-6
 
     // Enabled flags
     let eqEnabled = true;
