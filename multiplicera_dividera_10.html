@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mattezoo – Multiplicera och dividera med 10, 100 och 1000</title>
+<style>
+  body{
+    font-family: Arial, sans-serif;
+    background:#eef2f7;
+    margin:0;
+    padding:24px 14px 40px;
+  }
+  #app{
+    max-width:980px;
+    margin:0 auto;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 6px 22px rgba(0,0,0,0.09);
+    border-top:6px solid #4CAF50;
+    padding:18px 18px 22px;
+    position:relative;
+  }
+  h1{margin:0 0 6px; color:#2e7d32;}
+  p{margin:8px 0 12px; line-height:1.35;}
+  .muted{color:#566; font-size:14px;}
+
+  #starPill{
+    position:absolute; top:14px; right:14px;
+    background:#fffde7;
+    border:1px solid #ffe082;
+    border-radius:999px;
+    padding:7px 12px;
+    display:flex; align-items:center; gap:8px;
+    font-weight:800; color:#f57f17;
+  }
+  #starPill span{font-size:18px;}
+
+  .topRow{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+    padding-right:170px;
+  }
+  .backLink{
+    text-decoration:none;
+    color:#1b5e20;
+    background:#f1f8e9;
+    border:2px solid #c5e1a5;
+    padding:8px 10px;
+    border-radius:12px;
+    font-weight:800;
+    display:inline-block;
+  }
+  .backLink:hover{
+    box-shadow:0 4px 12px rgba(0,0,0,0.12);
+    transform: translateY(-1px);
+  }
+
+  .row{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+    justify-content:space-between;
+    margin-top:8px;
+  }
+
+  .pill{
+    background:#f1f8e9;
+    border:2px solid #c5e1a5;
+    color:#1b5e20;
+    border-radius:999px;
+    padding:6px 10px;
+    font-weight:900;
+    font-size:14px;
+  }
+
+  select, input, button{
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid #cfcfcf;
+    font-size:16px;
+  }
+  button{
+    border:none;
+    background:#4CAF50;
+    color:#fff;
+    cursor:pointer;
+    font-weight:900;
+  }
+  button:hover{background:#43a047;}
+  button.secondary{background:#546e7a;}
+  button.secondary:hover{background:#455a64;}
+  button:disabled{opacity:.55; cursor:not-allowed;}
+
+  #gameBox{
+    margin-top:12px;
+    background:#fafafa;
+    border:1px solid #ddd;
+    border-radius:12px;
+    padding:14px;
+  }
+
+  #prompt{
+    font-size:28px;
+    font-weight:900;
+    text-align:center;
+    margin:6px 0 10px;
+    color:#223;
+  }
+
+  #answerRow{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  #answer{
+    width:220px;
+    text-align:center;
+    font-size:20px;
+    border-radius:999px;
+  }
+
+  #hintLine{
+    display:none;
+    text-align:center;
+    margin:10px auto 0;
+    font-weight:900;
+    color:#334;
+    background:#fff3e0;
+    border:1px solid #ffcc80;
+    border-radius:12px;
+    padding:10px 12px;
+    max-width:760px;
+  }
+
+  #feedback{
+    text-align:center;
+    min-height:50px;
+    margin-top:10px;
+    font-weight:900;
+  }
+  .ok{color:#16a34a; font-size:18px;}
+  .bad{color:#dc2626; font-size:40px; line-height:1;}
+  .hint{color:#334; font-size:14px; font-weight:900;}
+  .reveal{
+    margin-top:8px;
+    display:inline-block;
+    background:#fff3e0;
+    border:1px solid #ffcc80;
+    color:#6d4c41;
+    border-radius:999px;
+    padding:6px 10px;
+    font-weight:900;
+    font-size:14px;
+  }
+
+  .tiny{
+    font-size:12px;
+    color:#556;
+    font-weight:800;
+    margin-top:10px;
+  }
+
+  @media (max-width:520px){
+    #starPill{position:static; margin-bottom:10px;}
+    .topRow{padding-right:0;}
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="starPill"><span>⭐</span> <span id="starsText">0</span></div>
+
+  <div class="topRow">
+    <div>
+      <h1>🔟 Multiplicera och dividera</h1>
+      <p class="muted" style="margin:6px 0 0;">
+        Du får stjärnor när du klarar <b>10 uppgifter</b>.
+        <br><b>Lätt</b> = 1⭐, <b>Medel</b> = 2⭐, <b>Svår</b> = 3⭐.
+        <br>Tips: Skriv med <b>komma</b> eller <b>punkt</b> (båda funkar).
+      </p>
+    </div>
+    <a class="backLink" href="index.html">⬅ Tillbaka till Mattezoo</a>
+  </div>
+
+  <div class="row">
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+      <div>
+        <div class="muted" style="font-weight:900; margin-bottom:6px;">Välj nivå</div>
+        <select id="levelSelect">
+          <option value="easy">Lätt (1⭐)</option>
+          <option value="medium">Medel (2⭐)</option>
+          <option value="hard">Svår (3⭐)</option>
+        </select>
+      </div>
+
+      <button id="startBtn" class="secondary">Starta omgång</button>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <div class="pill">Fråga: <span id="qIdx">0</span> / 10</div>
+      <div class="pill">Fel på denna: <span id="wrongThis">0</span> / 3</div>
+    </div>
+  </div>
+
+  <div id="gameBox" style="display:none;">
+    <div id="prompt">—</div>
+
+    <div id="answerRow">
+      <input id="answer" type="text" inputmode="decimal" placeholder="Skriv svar" />
+      <button id="okBtn">OK</button>
+      <button id="againBtn" class="secondary" style="display:none;">Kör igen</button>
+    </div>
+
+    <div id="hintLine"></div>
+
+    <div id="feedback"></div>
+    <div class="tiny" id="footNote"></div>
+  </div>
+</div>
+
+<script src="daily.js"></script>
+<script src="today.js"></script>
+
+<script>
+/* =========================
+   MATTEZOO-KEYS
+========================= */
+const KEY_STARS = "mathZooStars";
+
+/* =========================
+   STATE
+========================= */
+let stars = 0;
+let level = "easy";
+let tasks = [];
+let taskIndex = 0;
+let wrongThis = 0;
+let roundDone = false;
+let cur = null;
+
+/* =========================
+   UI refs
+========================= */
+const starsText = document.getElementById("starsText");
+const levelSelect = document.getElementById("levelSelect");
+const startBtn = document.getElementById("startBtn");
+const gameBox = document.getElementById("gameBox");
+
+const promptDiv = document.getElementById("prompt");
+const answerInput = document.getElementById("answer");
+const okBtn = document.getElementById("okBtn");
+const againBtn = document.getElementById("againBtn");
+
+const hintLine = document.getElementById("hintLine");
+const feedbackDiv = document.getElementById("feedback");
+const qIdxSpan = document.getElementById("qIdx");
+const wrongThisSpan = document.getElementById("wrongThis");
+const footNote = document.getElementById("footNote");
+
+/* =========================
+   Helpers
+========================= */
+function loadStars(){
+  stars = parseInt(localStorage.getItem(KEY_STARS) || "0", 10);
+  if(Number.isNaN(stars)) stars = 0;
+  starsText.textContent = String(stars);
+}
+function addStars(n){
+  stars += n;
+  localStorage.setItem(KEY_STARS, JSON.stringify(stars));
+  starsText.textContent = String(stars);
+}
+
+function safeDailyIncrement(type, amount=1){
+  try{
+    if(typeof window.mzDailyIncrement === "function"){
+      window.mzDailyIncrement(type, amount);
+    }
+  }catch{}
+}
+function safeTodayIncrement(type, amount=1){
+  try{
+    if(typeof window.mzTodayIncrement === "function"){
+      window.mzTodayIncrement(type, amount);
+    }
+  }catch{}
+}
+
+function randInt(min, max){
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+function pick(arr){
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+function chance(p){
+  return Math.random() < p;
+}
+
+function parseUserNumber(s){
+  const t = (s || "").trim().replace(/\s+/g, "").replace(",", ".");
+  if(t === "") return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatSV(n){
+  if(Math.abs(n) < 1e-12) n = 0;
+  let s = (Math.round(n * 1e6) / 1e6).toString();
+  if(s.includes("e")) return s.replace(".", ",");
+  if(s.includes(".")){
+    s = s.replace(/0+$/,"").replace(/\.$/,"");
+  }
+  return s.replace(".", ",");
+}
+
+function isCorrect(user, correct){
+  return Math.abs(user - correct) < 1e-9;
+}
+
+function hideHint(){
+  hintLine.style.display = "none";
+  hintLine.textContent = "";
+}
+function showHint(msg){
+  hintLine.textContent = msg;
+  hintLine.style.display = "block";
+}
+
+/* =========================
+   Task generation
+========================= */
+function makeEasyNumber(){
+  const variants = [
+    () => randInt(1, 99),
+    () => randInt(1, 999),
+    () => randInt(1, 99) / 10,
+    () => randInt(1, 99) / 100
+  ];
+  return pick(variants)();
+}
+
+function makeMediumNumber(){
+  const variants = [
+    () => randInt(1, 999),
+    () => randInt(1, 9999) / 10,
+    () => randInt(1, 9999) / 100,
+    () => randInt(1, 99999) / 1000
+  ];
+  return pick(variants)();
+}
+
+function makeHardNumber(){
+  const variants = [
+    () => randInt(1, 99999) / 10,
+    () => randInt(1, 99999) / 100,
+    () => randInt(1, 99999) / 1000,
+    () => randInt(1, 999999) / 1000
+  ];
+  return pick(variants)();
+}
+
+function genTask(level){
+  let num, op, factor, ans;
+
+  if(level === "easy"){
+    op = pick(["×", "÷"]);
+    factor = pick([10, 100, 1000]);
+
+    if(op === "×"){
+      num = makeEasyNumber();
+      ans = num * factor;
+    } else {
+      num = makeEasyNumber() * factor;
+      ans = num / factor;
+    }
+  }
+
+  if(level === "medium"){
+    op = pick(["×", "÷"]);
+    factor = pick([10, 100, 1000]);
+
+    if(op === "×"){
+      num = makeMediumNumber();
+      ans = num * factor;
+    } else {
+      num = makeMediumNumber() * factor;
+      ans = num / factor;
+    }
+  }
+
+  if(level === "hard"){
+    op = pick(["×", "÷"]);
+    factor = pick([10, 100, 1000]);
+
+    if(op === "×"){
+      num = makeHardNumber();
+      ans = num * factor;
+    } else {
+      if(chance(0.6)){
+        num = makeHardNumber() * factor;
+      } else {
+        num = makeHardNumber();
+      }
+      ans = num / factor;
+    }
+  }
+
+  return { num, op, factor, ans };
+}
+
+function buildRound(level){
+  const out = [];
+  for(let i = 0; i < 10; i++){
+    out.push(genTask(level));
+  }
+  return out;
+}
+
+/* =========================
+   Hint logic
+========================= */
+function getDirectionWord(op){
+  return op === "×" ? "höger" : "vänster";
+}
+
+function getStepCount(factor){
+  if(factor === 10) return 1;
+  if(factor === 100) return 2;
+  return 3;
+}
+
+function getHint1(task){
+  if(task.factor === 10){
+    return "Tips: Det finns 1 nolla i tio.";
+  }
+  if(task.factor === 100){
+    return "Tips: Det finns 2 nollor i hundra.";
+  }
+  return "Tips: Det finns 3 nollor i tusen.";
+}
+
+function getHint2(task){
+  const steps = getStepCount(task.factor);
+  const dir = getDirectionWord(task.op);
+
+  if(task.factor === 10){
+    return `Tips: Det finns 1 nolla i tio, så flytta decimalen 1 steg åt ${dir}.`;
+  }
+  if(task.factor === 100){
+    return `Tips: Det finns 2 nollor i hundra, så flytta decimalen 2 steg åt ${dir}.`;
+  }
+  return `Tips: Det finns 3 nollor i tusen, så flytta decimalen 3 steg åt ${dir}.`;
+}
+
+/* =========================
+   Game flow
+========================= */
+function renderTask(){
+  qIdxSpan.textContent = String(taskIndex + 1);
+  wrongThisSpan.textContent = String(wrongThis);
+
+  promptDiv.textContent = `${formatSV(cur.num)} ${cur.op} ${cur.factor} = ?`;
+
+  feedbackDiv.textContent = "";
+  feedbackDiv.className = "";
+  footNote.textContent = "";
+  hideHint();
+}
+
+function awardStarsForLevel(){
+  if(level === "easy") return 1;
+  if(level === "medium") return 2;
+  return 3;
+}
+
+function startRound(){
+  level = levelSelect.value;
+  tasks = buildRound(level);
+  taskIndex = 0;
+  wrongThis = 0;
+  roundDone = false;
+  cur = tasks[0];
+
+  gameBox.style.display = "block";
+  againBtn.style.display = "none";
+  okBtn.disabled = false;
+
+  feedbackDiv.textContent = "";
+  feedbackDiv.className = "";
+  footNote.textContent = "";
+  hideHint();
+
+  answerInput.value = "";
+  answerInput.focus();
+
+  renderTask();
+}
+
+function finishRound(){
+  roundDone = true;
+  const earned = awardStarsForLevel();
+  addStars(earned);
+
+  safeDailyIncrement("pow10", 1);
+  safeTodayIncrement("pow10", 1);
+
+  feedbackDiv.textContent = `🎉 Omgång klar! Du fick ${earned} ⭐.`;
+  feedbackDiv.className = "ok";
+  footNote.textContent = "Kör igen för att träna mer, eller byt nivå.";
+
+  okBtn.disabled = true;
+  againBtn.style.display = "inline-block";
+  answerInput.blur();
+}
+
+function nextTask(){
+  taskIndex += 1;
+  wrongThis = 0;
+
+  if(taskIndex >= tasks.length){
+    finishRound();
+    return;
+  }
+
+  cur = tasks[taskIndex];
+  answerInput.value = "";
+  answerInput.focus();
+  renderTask();
+}
+
+function showReveal(){
+  footNote.innerHTML = `<span class="reveal">Rätt svar: <b>${formatSV(cur.ans)}</b></span>`;
+}
+
+function checkAnswer(){
+  if(roundDone) return;
+
+  const user = parseUserNumber(answerInput.value);
+  if(user === null){
+    feedbackDiv.textContent = " ";
+    feedbackDiv.className = "bad";
+    return;
+  }
+
+  if(isCorrect(user, cur.ans)){
+    feedbackDiv.textContent = "Rätt!";
+    feedbackDiv.className = "ok";
+    footNote.textContent = "";
+    hideHint();
+
+    setTimeout(nextTask, 450);
+  } else {
+    wrongThis += 1;
+    wrongThisSpan.textContent = String(wrongThis);
+
+    feedbackDiv.textContent = "✖";
+    feedbackDiv.className = "bad";
+
+    if(wrongThis === 1){
+      showHint(getHint1(cur));
+    } else if(wrongThis === 2){
+      showHint(getHint2(cur));
+    } else if(wrongThis >= 3){
+      showReveal();
+      hideHint();
+      feedbackDiv.className = "hint";
+      feedbackDiv.textContent = "Nu ser du rätt svar. Skriv det för att gå vidare 🙂";
+    }
+
+    answerInput.focus();
+    answerInput.select();
+  }
+}
+
+/* =========================
+   Events
+========================= */
+startBtn.addEventListener("click", startRound);
+okBtn.addEventListener("click", checkAnswer);
+againBtn.addEventListener("click", startRound);
+
+answerInput.addEventListener("keydown", (e)=>{
+  if(e.key === "Enter") checkAnswer();
+});
+
+/* =========================
+   Init
+========================= */
+document.addEventListener("DOMContentLoaded", ()=>{
+  loadStars();
+});
+</script>
+</body>
+</html>
