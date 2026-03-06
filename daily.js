@@ -1,28 +1,21 @@
 /* =========================================================
    Mattezoo - Daily Quests (daily.js)
-   Laddas av index.html + spelsidorna.
+   Stöd för:
+   eq, mult, frac, percent, prefix, unit, pow10
 
-   Använd i spel när eleven "vinner":
-     mzDailyIncrement("eq",     1);   // ekvationer
-     mzDailyIncrement("mult",   1);   // multiplikation
-     mzDailyIncrement("frac",   1);   // bråk<->decimal (proffsläge)
-     mzDailyIncrement("prefix", 1);   // prefix - para ihop
-     mzDailyIncrement("unit",   1);   // enhetsomvandling
-
-   Om du vill läsa av status i spel:
-     const d = mzLoadDaily();
-     console.log(d);
-
-   Nyckel i localStorage:
-     "mathZooDaily"
+   Regler:
+   - Varje dag skapas ett nytt uppdrag
+   - Några spel väljs ut slumpmässigt
+   - Totalt antal uppgifter över alla spel = max 15
+   - Daily Blind Bag kan öppnas när allt är klart
 ========================================================= */
 
 (function () {
   const KEY_DAILY = "mathZooDaily";
-  const TYPES = ["eq", "mult", "frac", "prefix", "unit"];
+  const TYPES = ["eq", "mult", "frac", "percent", "prefix", "unit", "pow10"];
+  const MAX_TOTAL = 15;
 
   function todayKey() {
-    // sv-SE ger YYYY-MM-DD
     return new Date().toLocaleDateString("sv-SE");
   }
 
@@ -38,37 +31,98 @@
   function mulberry32(seed) {
     return function () {
       seed |= 0;
-      seed = (seed + 0x6D2B79F5) | 0;
-      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      seed = seed + 0x6D2B79F5 | 0;
+      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
   }
 
-  function randInt(rnd, min, max) {
-    return Math.floor(rnd() * (max - min + 1)) + min;
+  function shuffle(arr, rnd) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
   }
 
-  function safeParse(json, fallback) {
-    try {
-      return JSON.parse(json);
-    } catch {
-      return fallback;
-    }
+  function emptyDaily(dateStr) {
+    return {
+      date: dateStr,
+      claimed: false,
+      plan: {
+        enabled: {
+          eq: false,
+          mult: false,
+          frac: false,
+          percent: false,
+          prefix: false,
+          unit: false,
+          pow10: false
+        },
+        targets: {
+          eq: 0,
+          mult: 0,
+          frac: 0,
+          percent: 0,
+          prefix: 0,
+          unit: 0,
+          pow10: 0
+        }
+      },
+      counts: {
+        eq: 0,
+        mult: 0,
+        frac: 0,
+        percent: 0,
+        prefix: 0,
+        unit: 0,
+        pow10: 0
+      }
+    };
+  }
+
+  function makePlanForToday(dateStr) {
+    const rnd = mulberry32(seedFromString("daily|" + dateStr));
+    const d = emptyDaily(dateStr);
+
+    const numGames = 3 + Math.floor(rnd() * 3);
+    const picked = shuffle(TYPES, rnd).slice(0, numGames);
+
+    let remaining = MAX_TOTAL;
+
+    picked.forEach((type, idx) => {
+      d.plan.enabled[type] = true;
+
+      const leftGames = picked.length - idx;
+      const minHere = 2;
+      const maxHere = Math.min(5, remaining - (leftGames - 1) * 2);
+
+      let target;
+      if (leftGames === 1) {
+        target = remaining;
+      } else {
+        target = minHere + Math.floor(rnd() * (maxHere - minHere + 1));
+      }
+
+      d.plan.targets[type] = target;
+      remaining -= target;
+    });
+
+    return d;
   }
 
   function normalizeDaily(d) {
-    // säkerställ struktur + bakåtkompat
-    if (!d || typeof d !== "object") d = {};
+    const dateStr = todayKey();
+    if (!d || typeof d !== "object") return makePlanForToday(dateStr);
 
-    if (typeof d.date !== "string") d.date = todayKey();
-    if (typeof d.claimed !== "boolean") d.claimed = false;
+    if (d.date !== dateStr) return makePlanForToday(dateStr);
 
-    if (!d.plan || typeof d.plan !== "object") d.plan = {};
-    if (!d.plan.enabled || typeof d.plan.enabled !== "object") d.plan.enabled = {};
-    if (!d.plan.targets || typeof d.plan.targets !== "object") d.plan.targets = {};
-
-    if (!d.counts || typeof d.counts !== "object") d.counts = {};
+    d.plan = d.plan || { enabled: {}, targets: {} };
+    d.plan.enabled = d.plan.enabled || {};
+    d.plan.targets = d.plan.targets || {};
+    d.counts = d.counts || {};
 
     for (const t of TYPES) {
       if (typeof d.plan.enabled[t] !== "boolean") d.plan.enabled[t] = false;
@@ -76,140 +130,45 @@
       if (typeof d.counts[t] !== "number") d.counts[t] = 0;
     }
 
+    if (typeof d.claimed !== "boolean") d.claimed = false;
+    if (typeof d.date !== "string") d.date = dateStr;
+
     return d;
   }
 
-  // Planen varierar per dag men är stabil under dagen (samma datum => samma plan)
-  function generateDailyPlan(dateStr) {
-    const rnd = mulberry32(seedFromString("mattezoo|" + dateStr));
-
-    // Grund: eq+mult "bas", och ibland extra (frac/prefix/unit)
-    // 60%: ha fler uppdrag samma dag, annars lite färre
-    const useMany = rnd() < 0.60;
-
-    // Bas-uppdrag
-    const eqTarget = randInt(rnd, 2, 5);
-    const multTarget = randInt(rnd, 2, 5);
-
-    // Extra-uppdrag (binära eller små mål)
-    const includeFrac = useMany ? true : (rnd() < 0.45);
-    const includePrefix = useMany ? (rnd() < 0.70) : (rnd() < 0.35);
-    const includeUnit = useMany ? (rnd() < 0.70) : (rnd() < 0.35);
-
-    const fracTarget = includeFrac ? 1 : 0;                 // 1 eller 0
-    const prefixTarget = includePrefix ? randInt(rnd, 3, 6) : 0; // 3–6
-    const unitTarget = includeUnit ? randInt(rnd, 3, 6) : 0;     // 3-6
-
-    // Enabled flags
-    let eqEnabled = true;
-    let multEnabled = true;
-    let fracEnabled = fracTarget > 0;
-    let prefixEnabled = prefixTarget > 0;
-    let unitEnabled = unitTarget > 0;
-
-    // Om det inte är "många", gör planen lite snällare:
-    // ibland stäng av eq eller mult om flera extra är på
-    if (!useMany) {
-      const extrasOn = [fracEnabled, prefixEnabled, unitEnabled].filter(Boolean).length;
-
-      if (extrasOn >= 2) {
-        // pausa antingen eq eller mult så det inte blir för mycket
-        if (rnd() < 0.5) eqEnabled = false;
-        else multEnabled = false;
-      } else if (extrasOn === 1) {
-        // ibland stäng av en extra också (för variation)
-        if (fracEnabled && rnd() < 0.20) fracEnabled = false;
-        if (prefixEnabled && rnd() < 0.20) prefixEnabled = false;
-        if (unitEnabled && rnd() < 0.20) unitEnabled = false;
-      }
+  function loadDaily() {
+    const raw = localStorage.getItem(KEY_DAILY);
+    let parsed = null;
+    try {
+      parsed = raw ? JSON.parse(raw) : null;
+    } catch {
+      parsed = null;
     }
 
-    return {
-      enabled: {
-        eq: eqEnabled,
-        mult: multEnabled,
-        frac: fracEnabled,
-        prefix: prefixEnabled,
-        unit: unitEnabled,
-      },
-      targets: {
-        eq: eqEnabled ? eqTarget : 0,
-        mult: multEnabled ? multTarget : 0,
-        frac: fracEnabled ? 1 : 0,
-        prefix: prefixEnabled ? prefixTarget : 0,
-        unit: unitEnabled ? unitTarget : 0,
-      },
-    };
-  }
-
-  function ensureDailyExists() {
-    const t = todayKey();
-    let d = safeParse(localStorage.getItem(KEY_DAILY) || "null", null);
-
-    // ny dag eller saknas
-    if (!d || d.date !== t) {
-      d = {
-        date: t,
-        plan: generateDailyPlan(t),
-        counts: { eq: 0, mult: 0, frac: 0, prefix: 0, unit: 0 },
-        claimed: false,
-      };
-      d = normalizeDaily(d);
-      localStorage.setItem(KEY_DAILY, JSON.stringify(d));
-      return d;
-    }
-
-    // samma dag: patcha om något saknas
-    d = normalizeDaily(d);
-
-    // om plan saknar nycklar (t.ex. äldre sparning), regenerera INTE,
-    // men se till att targets/enabled finns. (normalizeDaily fixar default 0/false)
-    // Om du vill vara extra snäll kan du "adoptera" dagens plan om den var tom:
-    if (!d.plan || !d.plan.enabled || !d.plan.targets) {
-      d.plan = generateDailyPlan(t);
-      d = normalizeDaily(d);
-    }
-
+    const d = normalizeDaily(parsed);
     localStorage.setItem(KEY_DAILY, JSON.stringify(d));
     return d;
   }
 
-  function mzLoadDaily() {
-    return ensureDailyExists();
+  function saveDaily(d) {
+    localStorage.setItem(KEY_DAILY, JSON.stringify(normalizeDaily(d)));
   }
 
-  function mzSaveDaily(d) {
-    d = normalizeDaily(d);
-    localStorage.setItem(KEY_DAILY, JSON.stringify(d));
-  }
-
-  // Öka dagens räknare (nollställs automatiskt när datum byts)
-  function mzDailyIncrement(type, amount = 1) {
-    const d = ensureDailyExists();
-
+  function dailyIncrement(type, amount = 1) {
     if (!TYPES.includes(type)) return;
 
-    d.counts[type] += amount;
-    mzSaveDaily(d);
+    const d = loadDaily();
+    if (!d.plan.enabled[type]) return;
+
+    d.counts[type] = (d.counts[type] || 0) + amount;
+
+    const max = d.plan.targets[type] || 0;
+    if (d.counts[type] > max) d.counts[type] = max;
+
+    saveDaily(d);
   }
 
-  // Hjälpfunktion: är dagens uppdrag klart?
-  function mzDailyIsComplete() {
-    const d = ensureDailyExists();
-    const tg = d.plan.targets;
-    const c = d.counts;
-
-    for (const t of TYPES) {
-      const done = Math.min(c[t], tg[t]);
-      if (done < tg[t]) return false;
-    }
-    return true;
-  }
-
-  // Exponera globalt (så både index och spel kan använda)
-  window.mzDailyIncrement = mzDailyIncrement;
-  window.mzLoadDaily = mzLoadDaily;
-  window.mzSaveDaily = mzSaveDaily;
-  window.mzDailyIsComplete = mzDailyIsComplete;
-  window.mzTodayKey = todayKey;
+  window.mzLoadDaily = loadDaily;
+  window.mzSaveDaily = saveDaily;
+  window.mzDailyIncrement = dailyIncrement;
 })();
