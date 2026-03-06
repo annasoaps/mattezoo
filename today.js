@@ -1,87 +1,84 @@
 /* =========================================================
-   Mattezoo - Today Log (today.js)
-   Syfte: Visa "I dag har jag gjort" på index.html
-
-   Nyckel i localStorage:
-     "mathZooToday"
+   Mattezoo - Today log (today.js)
+   Sparar vad eleven gjort idag.
 ========================================================= */
 
 (function () {
   const KEY_TODAY = "mathZooToday";
+  const TYPES = ["eq", "frac", "percent", "prefix", "unit", "pow10"];
 
   function todayKey() {
-    return new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD
+    return new Date().toLocaleDateString("sv-SE");
   }
 
-  function safeParse(json, fallback) {
-    try { return JSON.parse(json); } catch { return fallback; }
+  function emptyToday(dateStr) {
+    return {
+      date: dateStr,
+      counts: {
+        eq: 0,
+        frac: 0,
+        percent: 0,
+        prefix: 0,
+        unit: 0,
+        pow10: 0
+      },
+      tables: {}
+    };
   }
 
-  function ensureTodayExists() {
-    const t = todayKey();
-    let obj = safeParse(localStorage.getItem(KEY_TODAY) || "null", null);
+  function normalizeToday(t) {
+    const dateStr = todayKey();
+    if (!t || typeof t !== "object") return emptyToday(dateStr);
+    if (t.date !== dateStr) return emptyToday(dateStr);
 
-    if (!obj || obj.date !== t) {
-      obj = {
-        date: t,
-        counts: { eq: 0, frac: 0, unit: 0, prefix: 0 },
-        tables: {} // { "3": 6, "6": 2, ... }
-      };
-      localStorage.setItem(KEY_TODAY, JSON.stringify(obj));
+    t.counts = t.counts || {};
+    for (const type of TYPES) {
+      if (typeof t.counts[type] !== "number") t.counts[type] = 0;
     }
 
-    // Härdning + bakåtkompatibilitet
-    if (!obj.counts || typeof obj.counts !== "object") obj.counts = {};
-    if (!obj.tables || typeof obj.tables !== "object") obj.tables = {};
+    if (!t.tables || typeof t.tables !== "object") t.tables = {};
+    if (typeof t.date !== "string") t.date = dateStr;
 
-    if (typeof obj.counts.eq !== "number") obj.counts.eq = 0;
-    if (typeof obj.counts.frac !== "number") obj.counts.frac = 0;
-    if (typeof obj.counts.unit !== "number") obj.counts.unit = 0;
-    if (typeof obj.counts.prefix !== "number") obj.counts.prefix = 0;
-
-    return obj;
+    return t;
   }
 
-  function mzLoadToday() {
-    return ensureTodayExists();
+  function loadToday() {
+    const raw = localStorage.getItem(KEY_TODAY);
+    let parsed = null;
+    try {
+      parsed = raw ? JSON.parse(raw) : null;
+    } catch {
+      parsed = null;
+    }
+
+    const t = normalizeToday(parsed);
+    localStorage.setItem(KEY_TODAY, JSON.stringify(t));
+    return t;
   }
 
-  function mzSaveToday(obj) {
-    localStorage.setItem(KEY_TODAY, JSON.stringify(obj));
+  function saveToday(t) {
+    localStorage.setItem(KEY_TODAY, JSON.stringify(normalizeToday(t)));
   }
 
-  // eq, frac, unit, prefix
-  function mzTodayIncrement(type, amount = 1) {
-    const obj = ensureTodayExists();
-    if (!obj.counts || obj.counts[type] === undefined) return;
-    obj.counts[type] += amount;
-    mzSaveToday(obj);
+  function todayIncrement(type, amount = 1, table = null) {
+    const t = loadToday();
+
+    if (type === "mult") {
+      const key = String(table ?? "");
+      if (key) {
+        t.tables[key] = (t.tables[key] || 0) + amount;
+      }
+      saveToday(t);
+      return;
+    }
+
+    if (!TYPES.includes(type)) return;
+
+    t.counts[type] = (t.counts[type] || 0) + amount;
+    saveToday(t);
   }
 
-  // multiplikation per tabell
-  function mzTodayAddTable(tableNumber, amount = 1) {
-    const obj = ensureTodayExists();
-
-    const n = Number(tableNumber);
-    if (!Number.isFinite(n) || n <= 0) return;
-
-    const key = String(n);
-    if (typeof obj.tables[key] !== "number") obj.tables[key] = 0;
-    obj.tables[key] += amount;
-
-    mzSaveToday(obj);
-  }
-
-  function mzTodayReset() {
-    const t = todayKey();
-    const obj = { date: t, counts: { eq: 0, frac: 0, unit: 0, prefix: 0 }, tables: {} };
-    localStorage.setItem(KEY_TODAY, JSON.stringify(obj));
-    return obj;
-  }
-
-  window.mzLoadToday = mzLoadToday;
-  window.mzSaveToday = mzSaveToday;
-  window.mzTodayIncrement = mzTodayIncrement;
-  window.mzTodayAddTable = mzTodayAddTable;
-  window.mzTodayReset = mzTodayReset;
+  window.mzLoadToday = loadToday;
+  window.mzSaveToday = saveToday;
+  window.mzTodayIncrement = todayIncrement;
 })();
