@@ -207,7 +207,7 @@
     white-space:nowrap;
   }
 
-  /* === Animal movement (Level 2) === */
+  /* Animal movement */
   .zThing.zAnimal{
     will-change: transform, left, top;
   }
@@ -289,7 +289,6 @@
   .ice{background:#dff7fb;}
   .fantasy{background:#f3e3fb;}
 
-  /* NEW THEMES */
   .space{background:#0b1020;}
   .space .zoneHeader, .space .zoneBody, .space .zoneMeta{ color:#e8eefc; }
   .space .pillMini{ background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18); }
@@ -346,7 +345,7 @@
   }
   code{background:#f5f5f5; padding:1px 6px; border-radius:8px;}
 
-  /* ===== Storage modal ===== */
+  /* Storage modal */
   #storageModal{
     position:fixed;
     inset:0;
@@ -476,18 +475,21 @@
           <h3>✖️ Multiplikation</h3>
           <p>Träna tabeller och samla ⭐.</p>
         </a>
+
         <a class="gameBtn" href="ekvationer.html">
           <h3>🧮 Ekvationer</h3>
           <p>Lös ekvationer steg för steg.</p>
         </a>
+
         <a class="gameBtn" href="brak_decimal.html">
           <h3>➗ Bråk &lt;-&gt; Decimal</h3>
-          <p>Omvandla bråk till decimaltal</p>
+          <p>Omvandla bråk till decimaltal och samla ⭐.</p>
         </a>
+
         <a class="gameBtn" href="percent_convert.html">
-  <h3>📈 Bråk • Decimal • Procent</h3>
-  <p>Omvandla mellan bråk, decimaltal och procent och samla ⭐.</p>
-</a>
+          <h3>📈 Bråk • Decimal • Procent</h3>
+          <p>Omvandla mellan bråk, decimaltal och procent och samla ⭐.</p>
+        </a>
 
         <a class="gameBtn" href="prefix_match.html">
           <h3>📏 Prefix – para ihop</h3>
@@ -496,11 +498,15 @@
 
         <a class="gameBtn" href="prefix_convert.html">
           <h3>🔁 Enhetsomvandling</h3>
-          <p>Omvandla mellan enheter (t.ex. m ↔ km, l ↔ dl) och samla ⭐.</p>
+          <p>Omvandla mellan enheter och samla ⭐.</p>
+        </a>
+
+        <a class="gameBtn" href="multiplicera_dividera_10.html">
+          <h3>🔟 × och ÷ med 10, 100, 1000</h3>
+          <p>Flytta decimalen åt rätt håll och samla ⭐.</p>
         </a>
       </div>
 
-      <!-- DAILY QUESTS -->
       <div id="dailyBox">
         <div id="dailyHeader">
           <div>📜 Dagens uppdrag</div>
@@ -511,25 +517,35 @@
           <span id="dailyLabelEq">Ekvationer:</span>
           <b id="dEq">0/0</b>
         </div>
+
         <div class="dailyLine">
           <span id="dailyLabelMult">Multiplikation:</span>
           <b id="dMult">0/0</b>
         </div>
+
         <div class="dailyLine">
-          <span id="dailyLabelFrac">Bråk↔Decimal (proffs):</span>
+          <span id="dailyLabelFrac">Bråk↔Decimal:</span>
           <b id="dFrac">0/0</b>
         </div>
 
-        <!-- NEW: Prefix match -->
+        <div class="dailyLine">
+          <span id="dailyLabelPercent">Bråk • Decimal • Procent:</span>
+          <b id="dPercent">0/0</b>
+        </div>
+
         <div class="dailyLine">
           <span id="dailyLabelPrefix">Prefix – para ihop:</span>
           <b id="dPrefix">0/0</b>
         </div>
 
-        <!-- NEW: Unit convert -->
         <div class="dailyLine">
           <span id="dailyLabelUnit">Enhetsomvandling:</span>
           <b id="dUnit">0/0</b>
+        </div>
+
+        <div class="dailyLine">
+          <span id="dailyLabelPow10">× / ÷ med 10, 100, 1000:</span>
+          <b id="dPow10">0/0</b>
         </div>
 
         <div id="dailyStatus">Gör uppdragen så låser du upp dagens blind bag 🎁</div>
@@ -631,7 +647,6 @@
   </div>
 </div>
 
-<!-- STORAGE MODAL -->
 <div id="storageModal" role="dialog" aria-modal="true">
   <div id="storageCard">
     <div id="storageHeader">
@@ -668,14 +683,10 @@
   </div>
 </div>
 
-<!-- Viktigt: externa scripts ska INTE ligga inne i en <script>...</script> -->
 <script src="daily.js"></script>
 <script src="today.js"></script>
 
 <script>
-/* =========================
-   STORAGE NYCKLAR
-========================= */
 const KEY_STARS   = "mathZooStars";
 const KEY_NAME    = "mathZooName";
 const KEY_UNLOCK  = "mathZooUnlockedZones";
@@ -684,22 +695,16 @@ const KEY_DECOR   = "mathZooDecorGridByZone";
 const KEY_PROG    = "mathZooProgress";
 const KEY_STORAGE = "mathZooAnimalStorageByZoneV1";
 
-/* =========================
-   EVENT: Alla hjärtans (limited unlock)
-========================= */
 function isValentineWindow(){
   const now = new Date();
-  const m = now.getMonth() + 1; // 1-12
-  const d = now.getDate();      // 1-31
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
   return (m === 2 && d >= 12 && d <= 15);
 }
 function isEventZone(key){
   return key === "valentine";
 }
 
-/* =========================
-   DATA: ZONER
-========================= */
 const ZONES = [
   { key:"forest",  name:"Skog",        icon:"🌲", cls:"forest"  },
   { key:"savannah",name:"Savann",      icon:"🌵", cls:"savannah"},
@@ -710,9 +715,6 @@ const ZONES = [
   { key:"valentine", name:"Alla hjärtans", icon:"💗", cls:"valentine" }
 ];
 
-/* =========================
-   UPPDRAG FÖR UPPLÅSNING
-========================= */
 const UNLOCK_REQ = {
   savannah:  { stars:10, mult:5,  eq:0,  label:"Klara 5 multiplikationer" },
   ocean:     { stars:10, mult:0,  eq:5,  label:"Klara 5 ekvationer" },
@@ -722,19 +724,9 @@ const UNLOCK_REQ = {
   valentine: { stars:10, mult:2,  eq:2,  label:"Klara 2 multiplikationer + 2 ekvationer (12–15 feb)" }
 };
 
-/* =========================
-   PRISER
-========================= */
 const PRICES = { animal: 3, decor: 2, blind: 4, unlock: 10 };
-
-/* =========================
-   HAGE/LAGER
-========================= */
 const PEN_MAX = 24;
 
-/* =========================
-   DJURPOOLER + RARITET
-========================= */
 const ANIMALS_POOL = {
   forest: {
     common:   ["🐭","🐿️","🦉","🦌","🦊"],
@@ -793,9 +785,6 @@ const DAILY_RARITY_CHANCE = [
   { r:"legendary",p:0.05 }
 ];
 
-/* =========================
-   DEKORATIONER
-========================= */
 const DECOR_BY_ZONE = {
   forest:   ["🌲","🌳","🍄","🌿","🌼","🪵"],
   savannah: ["🌵","🌾","🌻","🪨","🌞","🏜️"],
@@ -806,9 +795,6 @@ const DECOR_BY_ZONE = {
   valentine:["💗","💖","💝","🍫","🍓","🌹","🌷","💐"]
 };
 
-/* =========================
-   STATE
-========================= */
 let stars = 0;
 let zooName = "Mattezoo";
 
@@ -834,9 +820,6 @@ let decorGridByZone = {
 
 let progress = { mult:0, eq:0 };
 
-/* =========================
-   STORAGE HELPERS
-========================= */
 function safeParse(json, fallback){
   try{ return JSON.parse(json); }catch{ return fallback; }
 }
@@ -927,9 +910,6 @@ function saveState(){
   localStorage.setItem(KEY_PROG, JSON.stringify(progress));
 }
 
-/* =========================
-   UI HELPERS
-========================= */
 function setToast(msg, good=true){
   const t = document.getElementById("toast");
   t.textContent = msg || "";
@@ -945,9 +925,6 @@ function updateProgressUI(){
   document.getElementById("progEq").textContent = String(progress.eq || 0);
 }
 
-/* =========================
-   UNLOCK LOGIK
-========================= */
 function nextLockedZoneKey(){
   for(const z of ZONES){
     if(isEventZone(z.key)) continue;
@@ -983,25 +960,22 @@ function unlockZone(zoneKey){
   setToast(`🔓 Du låste upp ${ZONES.find(z=>z.key===zoneKey).name}!`);
 }
 
-/* =========================
-   DAILY (via daily.js)
-========================= */
 function getDailySafe(){
   const d = (window.mzLoadDaily ? window.mzLoadDaily() : null);
   if(!d) return null;
 
-  // Bakåtkomp: säkerställ fält
   d.plan = d.plan || { enabled:{}, targets:{} };
   d.plan.enabled = d.plan.enabled || {};
   d.plan.targets = d.plan.targets || {};
   d.counts = d.counts || {};
 
-  const types = ["eq","mult","frac","prefix","unit"];
+  const types = ["eq","mult","frac","percent","prefix","unit","pow10"];
   for(const t of types){
     if(typeof d.plan.enabled[t] !== "boolean") d.plan.enabled[t] = false;
     if(typeof d.plan.targets[t] !== "number")  d.plan.targets[t] = 0;
     if(typeof d.counts[t] !== "number")        d.counts[t] = 0;
   }
+
   if(typeof d.claimed !== "boolean") d.claimed = false;
   if(typeof d.date !== "string") d.date = "";
 
@@ -1029,43 +1003,63 @@ function updateDailyUI(){
   const tg = d.plan.targets;
   const c  = d.counts;
 
-  document.getElementById("dailyLabelEq").textContent      = en.eq      ? "Ekvationer:" : "Ekvationer: (inte idag)";
-  document.getElementById("dailyLabelMult").textContent    = en.mult    ? "Multiplikation:" : "Multiplikation: (inte idag)";
-  document.getElementById("dailyLabelFrac").textContent    = en.frac    ? "Bråk↔Decimal (proffs):" : "Bråk↔Decimal: (inte idag)";
-  document.getElementById("dailyLabelPrefix").textContent  = en.prefix  ? "Prefix – para ihop:" : "Prefix – para ihop: (inte idag)";
-  document.getElementById("dailyLabelUnit").textContent    = en.unit    ? "Enhetsomvandling:" : "Enhetsomvandling: (inte idag)";
+  document.getElementById("dailyLabelEq").textContent =
+    en.eq ? "Ekvationer:" : "Ekvationer: (inte idag)";
+  document.getElementById("dailyLabelMult").textContent =
+    en.mult ? "Multiplikation:" : "Multiplikation: (inte idag)";
+  document.getElementById("dailyLabelFrac").textContent =
+    en.frac ? "Bråk↔Decimal:" : "Bråk↔Decimal: (inte idag)";
+  document.getElementById("dailyLabelPercent").textContent =
+    en.percent ? "Bråk • Decimal • Procent:" : "Bråk • Decimal • Procent: (inte idag)";
+  document.getElementById("dailyLabelPrefix").textContent =
+    en.prefix ? "Prefix – para ihop:" : "Prefix – para ihop: (inte idag)";
+  document.getElementById("dailyLabelUnit").textContent =
+    en.unit ? "Enhetsomvandling:" : "Enhetsomvandling: (inte idag)";
+  document.getElementById("dailyLabelPow10").textContent =
+    en.pow10 ? "× / ÷ med 10, 100, 1000:" : "× / ÷ med 10, 100, 1000: (inte idag)";
 
   const eqDone      = Math.min(c.eq, tg.eq);
   const multDone    = Math.min(c.mult, tg.mult);
   const fracDone    = Math.min(c.frac, tg.frac);
+  const percentDone = Math.min(c.percent, tg.percent);
   const prefixDone  = Math.min(c.prefix, tg.prefix);
   const unitDone    = Math.min(c.unit, tg.unit);
+  const pow10Done   = Math.min(c.pow10, tg.pow10);
 
   document.getElementById("dEq").textContent      = `${eqDone}/${tg.eq}`;
   document.getElementById("dMult").textContent    = `${multDone}/${tg.mult}`;
   document.getElementById("dFrac").textContent    = `${fracDone}/${tg.frac}`;
+  document.getElementById("dPercent").textContent = `${percentDone}/${tg.percent}`;
   document.getElementById("dPrefix").textContent  = `${prefixDone}/${tg.prefix}`;
   document.getElementById("dUnit").textContent    = `${unitDone}/${tg.unit}`;
+  document.getElementById("dPow10").textContent   = `${pow10Done}/${tg.pow10}`;
 
   const allDone =
-    (eqDone     >= tg.eq) &&
-    (multDone   >= tg.mult) &&
-    (fracDone   >= tg.frac) &&
-    (prefixDone >= tg.prefix) &&
-    (unitDone   >= tg.unit);
+    (eqDone      >= tg.eq) &&
+    (multDone    >= tg.mult) &&
+    (fracDone    >= tg.frac) &&
+    (percentDone >= tg.percent) &&
+    (prefixDone  >= tg.prefix) &&
+    (unitDone    >= tg.unit) &&
+    (pow10Done   >= tg.pow10);
 
   const btn = document.getElementById("dailyClaimBtn");
+
   if(allDone && !d.claimed){
     document.getElementById("dailyStatus").textContent =
-      "✅ Dagens uppdrag klart! Öppna din Daily Blind Bag 🎁 (bättre rarity!)";
+      "✅ Dagens uppdrag klart! Öppna din Daily Blind Bag 🎁";
     btn.disabled = false;
   } else if(d.claimed){
     document.getElementById("dailyStatus").textContent =
       "🎁 Du har redan öppnat dagens Daily Blind Bag. Kom tillbaka i morgon!";
     btn.disabled = true;
   } else {
+    const totalTarget =
+      (tg.eq || 0) + (tg.mult || 0) + (tg.frac || 0) + (tg.percent || 0) +
+      (tg.prefix || 0) + (tg.unit || 0) + (tg.pow10 || 0);
+
     document.getElementById("dailyStatus").textContent =
-      "Gör uppdragen så låser du upp dagens Daily Blind Bag 🎁";
+      `Gör uppdragen så låser du upp dagens Daily Blind Bag 🎁 (totalt ${totalTarget}/15 max)`;
     btn.disabled = true;
   }
 }
@@ -1098,8 +1092,10 @@ function openDailyBlindBag(){
     Math.min(c.eq, tg.eq)           >= tg.eq &&
     Math.min(c.mult, tg.mult)       >= tg.mult &&
     Math.min(c.frac, tg.frac)       >= tg.frac &&
+    Math.min(c.percent, tg.percent) >= tg.percent &&
     Math.min(c.prefix, tg.prefix)   >= tg.prefix &&
-    Math.min(c.unit, tg.unit)       >= tg.unit;
+    Math.min(c.unit, tg.unit)       >= tg.unit &&
+    Math.min(c.pow10, tg.pow10)     >= tg.pow10;
 
   if(!allDone || d.claimed) return;
 
@@ -1131,9 +1127,6 @@ function openDailyBlindBag(){
 }
 document.getElementById("dailyClaimBtn").addEventListener("click", openDailyBlindBag);
 
-/* =========================
-   ZOO RENDER
-========================= */
 function renderZoneSelect(){
   const sel = document.getElementById("zoneSelect");
   sel.innerHTML = "";
@@ -1175,18 +1168,13 @@ function zonedRng(zoneKey){
   return mulberry32(seed);
 }
 
-/* =========================
-   ZOO ANIMATION (Level 2)
-   - Only animals move
-   - One global RAF loop
-========================= */
 const ZOO_ANIM = {
   running: false,
   rafId: null,
   lastT: 0,
-  maxAnimalsPerHabitat: 28, // matchar din maxRender
-  speedPxPerSec: 10,        // justera: 10–20 är lagom
-  turnJitter: 0.02          // hur “fladdrig” riktningen är
+  maxAnimalsPerHabitat: 28,
+  speedPxPerSec: 10,
+  turnJitter: 0.02
 };
 
 function zClamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
@@ -1197,10 +1185,9 @@ function zooStartAnimLoop(){
   ZOO_ANIM.lastT = performance.now();
 
   const tick = (tNow)=>{
-    const dt = Math.min(0.05, (tNow - ZOO_ANIM.lastT) / 1000); // max 50ms
+    const dt = Math.min(0.05, (tNow - ZOO_ANIM.lastT) / 1000);
     ZOO_ANIM.lastT = tNow;
 
-    // Loopa alla habitat som finns på sidan
     const habitats = document.querySelectorAll(".habitat");
     habitats.forEach(hab => animateHabitatStep(hab, dt));
 
@@ -1216,14 +1203,12 @@ function zooStopAnimLoop(){
   ZOO_ANIM.rafId = null;
 }
 
-// ✅ Punkt 4: pausa när fliken inte syns (sparar CPU)
 document.addEventListener("visibilitychange", ()=>{
   if(document.hidden) zooStopAnimLoop();
   else zooStartAnimLoop();
 });
 
 function animateHabitatStep(hab, dt){
-  // Hämta djuren i habitatet
   const animals = hab.querySelectorAll(".zThing.zAnimal");
   if(!animals.length) return;
 
@@ -1231,30 +1216,25 @@ function animateHabitatStep(hab, dt){
   const w = rect.width;
   const h = rect.height;
 
-  // “Safe zone” så de inte går in i kanten
-  const pad = 18; // px
+  const pad = 18;
   const minX = pad;
   const maxX = w - pad;
   const minY = pad;
   const maxY = h - pad;
 
   animals.forEach(el => {
-    // init om saknas
     if(!el.dataset.ax){
-      // starta från befintlig left/top (%)
       const lp = parseFloat(el.style.left || "50");
       const tp = parseFloat(el.style.top  || "50");
       const x0 = (lp/100) * w;
       const y0 = (tp/100) * h;
 
-      // slumpad riktning
       const ang = Math.random() * Math.PI * 2;
       el.dataset.ax = String(zClamp(x0, minX, maxX));
       el.dataset.ay = String(zClamp(y0, minY, maxY));
       el.dataset.vx = String(Math.cos(ang));
       el.dataset.vy = String(Math.sin(ang));
 
-      // bob desync
       const inner = el.querySelector(".zEmoji");
       if(inner) inner.style.animationDelay = (Math.random()*1.8).toFixed(2) + "s";
     }
@@ -1264,33 +1244,27 @@ function animateHabitatStep(hab, dt){
     let vx = parseFloat(el.dataset.vx);
     let vy = parseFloat(el.dataset.vy);
 
-    // liten slump i riktningen ibland (så de inte går spikrakt för evigt)
     const jitter = ZOO_ANIM.turnJitter;
     vx += (Math.random()*2 - 1) * jitter * dt;
     vy += (Math.random()*2 - 1) * jitter * dt;
 
-    // normalisera riktning
     const len = Math.hypot(vx, vy) || 1;
     vx /= len; vy /= len;
 
-    // flytta
     const sp = ZOO_ANIM.speedPxPerSec;
     x += vx * sp * dt;
     y += vy * sp * dt;
 
-    // studs
     if(x <= minX){ x = minX; vx = Math.abs(vx); }
     if(x >= maxX){ x = maxX; vx = -Math.abs(vx); }
     if(y <= minY){ y = minY; vy = Math.abs(vy); }
     if(y >= maxY){ y = maxY; vy = -Math.abs(vy); }
 
-    // spara tillbaka
     el.dataset.ax = String(x);
     el.dataset.ay = String(y);
     el.dataset.vx = String(vx);
     el.dataset.vy = String(vy);
 
-    // skriv till DOM (procent så layouten skalar)
     el.style.left = ((x / w) * 100).toFixed(3) + "%";
     el.style.top  = ((y / h) * 100).toFixed(3) + "%";
   });
@@ -1341,7 +1315,6 @@ function renderHabitat(zoneKey){
     const el = document.createElement("div");
     el.className = "zThing";
 
-    // wrapper så vi kan animera bob utan att störa position/translate
     const span = document.createElement("span");
     span.className = "zEmoji";
     span.textContent = t.emoji;
@@ -1477,9 +1450,6 @@ function renderZoo(){
   }
 }
 
-/* =========================
-   STORAGE MODAL
-========================= */
 let activeStorageZone = null;
 function zoneName(zoneKey){ return ZONES.find(z=>z.key===zoneKey)?.name || zoneKey; }
 
@@ -1562,9 +1532,6 @@ function renderStorageModal(){
   });
 }
 
-/* =========================
-   SHOP
-========================= */
 function renderShop(){
   const mode = document.getElementById("buyMode").value;
   const zone = document.getElementById("zoneSelect").value;
@@ -1757,9 +1724,6 @@ function buyBlindBag(zoneKey){
   setToast(`🎁 Blind Bag! Du fick: ${emoji} (${rarity.toUpperCase()})${where}`);
 }
 
-/* =========================
-   TODAY-SUMMARY (via today.js)
-========================= */
 function renderTodaySummary(){
   const list = document.getElementById("todayList");
   if(!list) return;
@@ -1772,10 +1736,13 @@ function renderTodaySummary(){
   }
 
   t.counts = t.counts || {};
-  const eq     = t.counts.eq     || 0;
-  const frac   = t.counts.frac   || 0;
-  const prefix = t.counts.prefix || 0;
-  const unit   = t.counts.unit   || 0;
+
+  const eq      = t.counts.eq      || 0;
+  const frac    = t.counts.frac    || 0;
+  const percent = t.counts.percent || 0;
+  const prefix  = t.counts.prefix  || 0;
+  const unit    = t.counts.unit    || 0;
+  const pow10   = t.counts.pow10   || 0;
 
   const tables = t.tables || {};
   const entries = Object.entries(tables)
@@ -1785,8 +1752,10 @@ function renderTodaySummary(){
   let html = "";
   html += `<li><b>Ekvationer:</b> ${eq}</li>`;
   html += `<li><b>Bråk↔Decimal:</b> ${frac}</li>`;
+  html += `<li><b>Bråk • Decimal • Procent:</b> ${percent}</li>`;
   html += `<li><b>Prefix – para ihop:</b> ${prefix}</li>`;
   html += `<li><b>Enhetsomvandling:</b> ${unit}</li>`;
+  html += `<li><b>× / ÷ med 10, 100, 1000:</b> ${pow10}</li>`;
   html += `<li style="margin-top:6px;"><b>Tabeller</b></li>`;
 
   if(entries.length === 0){
@@ -1801,9 +1770,6 @@ function renderTodaySummary(){
 }
 document.getElementById("todayRefreshBtn").addEventListener("click", renderTodaySummary);
 
-/* =========================
-   INIT / EVENTS
-========================= */
 function init(){
   loadState();
   updateStarsUI();
@@ -1814,8 +1780,6 @@ function init(){
   renderShop();
   updateDailyUI();
   renderTodaySummary();
-
-  // ✅ Starta rörelse-loopen en gång (Level 2)
   zooStartAnimLoop();
 }
 
