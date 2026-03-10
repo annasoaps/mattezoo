@@ -6,14 +6,6 @@
 <title>Mattezoo – Bråk • Decimal • Procent</title>
 <style>
   body{
-    font-family: Arial, sans-serif;<!DOCTYPE html>
-<html lang="sv">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Mattezoo – Bråk • Decimal • Procent</title>
-<style>
-  body{
     font-family: Arial, sans-serif;
     background:#eef2f7;
     margin:0;
@@ -33,7 +25,6 @@
   p{margin:8px 0 12px; line-height:1.35;}
   .muted{color:#566; font-size:14px;}
 
-  /* ⭐ pill */
   #starPill{
     position:absolute; top:14px; right:14px;
     background:#fffde7;
@@ -315,12 +306,20 @@ function chance(p){
 }
 
 function gcd(a,b){
-  a=Math.abs(a); b=Math.abs(b);
-  while(b){ const t=a%b; a=b; b=t; }
-  return a||1;
+  a = Math.abs(a);
+  b = Math.abs(b);
+  while(b){
+    const t = a % b;
+    a = b;
+    b = t;
+  }
+  return a || 1;
 }
 function simplifyFrac(n,d){
-  if(d<0){ n=-n; d=-d; }
+  if(d < 0){
+    n = -n;
+    d = -d;
+  }
   const g = gcd(n,d);
   return { n:n/g, d:d/g };
 }
@@ -341,6 +340,7 @@ function parseNumberLoose(s){
   const n = Number(t);
   return Number.isFinite(n) ? n : null;
 }
+
 function parsePercentInput(s){
   const t = (s||"").trim().replace(/\s+/g,"");
   if(t === "") return null;
@@ -349,13 +349,14 @@ function parsePercentInput(s){
   if(!Number.isFinite(n)) return null;
   return { value:n };
 }
+
 function parseFracInput(s){
   const t = (s||"").trim().replace(/\s+/g,"");
   const m = t.match(/^(-?\d+)\/(-?\d+)$/);
   if(!m) return null;
   const n = parseInt(m[1],10);
   const d = parseInt(m[2],10);
-  if(!Number.isFinite(n) || !Number.isFinite(d) || d===0) return null;
+  if(!Number.isFinite(n) || !Number.isFinite(d) || d === 0) return null;
   return simplifyFrac(n,d);
 }
 
@@ -383,19 +384,17 @@ function makeFracToPctTask(frac){
   const pctRounded = Math.round(pct*1000)/1000;
 
   const hints = [];
-  if(d===25) hints.push("Tips: Förläng med 4 så du får nämnare 100 (…/100).");
-  else if(d===50) hints.push("Tips: Förläng med 2 så du får nämnare 100 (…/100).");
-  else if(d===20) hints.push("Tips: Förläng med 5 så du får nämnare 100 (…/100).");
-  else if(d===10) hints.push("Tips: Förläng med 10 så du får nämnare 100 (…/100).");
-  else if(d===5)  hints.push("Tips: Förläng med 20 så du får nämnare 100 (…/100).");
-  else if(d===2)  hints.push("Tips: Förläng med 50 så du får nämnare 100 (…/100).");
+  if(d === 25) hints.push("Tips: Förläng med 4 så du får nämnare 100 (…/100).");
+  else if(d === 50) hints.push("Tips: Förläng med 2 så du får nämnare 100 (…/100).");
+  else if(d === 20) hints.push("Tips: Förläng med 5 så du får nämnare 100 (…/100).");
+  else if(d === 10) hints.push("Tips: Förläng med 10 så du får nämnare 100 (…/100).");
+  else if(d === 5)  hints.push("Tips: Förläng med 20 så du får nämnare 100 (…/100).");
+  else if(d === 2)  hints.push("Tips: Förläng med 50 så du får nämnare 100 (…/100).");
   else hints.push("Tips: Gör om till decimal (täljare ÷ nämnare) och multiplicera med 100.");
 
   hints.push("Kom ihåg: x% betyder x per 100.");
 
   return {
-    fromType:"frac",
-    toType:"pct",
     targetType:"pct",
     prompt:`Omvandla: ${n}/${d} → %`,
     answerCanonical:pctRounded,
@@ -405,41 +404,33 @@ function makeFracToPctTask(frac){
 }
 
 function makeDecToPctTask(dec){
-  const pct = dec*100;
+  const pct = dec * 100;
   const pctRounded = Math.round(pct*1000)/1000;
 
-  const hints = [
-    "Tips: Multiplicera decimaltalet med 100.",
-    "Ex: 0,37 × 100 = 37."
-  ];
-
   return {
-    fromType:"dec",
-    toType:"pct",
     targetType:"pct",
     prompt:`Omvandla: ${formatSV(dec)} → %`,
     answerCanonical:pctRounded,
-    hints,
+    hints:[
+      "Tips: Multiplicera decimaltalet med 100.",
+      "Ex: 0,37 × 100 = 37."
+    ],
     revealText:`Rätt svar: <b>${formatSV(pctRounded)}</b>%`
   };
 }
 
 function makePctToDecTask(pct){
-  const dec = pct/100;
+  const dec = pct / 100;
   const decRounded = Math.round(dec*1000)/1000;
 
-  const hints = [
-    "Tips: Dela procenttalet med 100.",
-    "Ex: 120% = 120 ÷ 100 = 1,2."
-  ];
-
   return {
-    fromType:"pct",
-    toType:"dec",
     targetType:"dec",
     prompt:`Omvandla: ${formatSV(pct)}% → decimaltal`,
     answerCanonical:decRounded,
-    hints,
+    hints:[
+      "Tips: Dela procenttalet med 100.",
+      "Ex: 120% = 120 ÷ 100 = 1,2."
+    ],
     revealText:`Rätt svar: <b>${formatSV(decRounded)}</b>`
   };
 }
@@ -447,39 +438,30 @@ function makePctToDecTask(pct){
 function makePctToFracTask(pct){
   const simp = simplifyFrac(pct, 100);
 
-  const hints = [
-    "Tips: Skriv procent som bråk: p% = p/100 och förkorta.",
-    "Ex: 25% = 25/100 = 1/4."
-  ];
-
   return {
-    fromType:"pct",
-    toType:"frac",
     targetType:"frac",
     prompt:`Omvandla: ${formatSV(pct)}% → bråk`,
     answerCanonical:simp,
-    hints,
+    hints:[
+      "Tips: Skriv procent som bråk: p% = p/100 och förkorta.",
+      "Ex: 25% = 25/100 = 1/4."
+    ],
     revealText:`Rätt svar: <b>${simp.n}/${simp.d}</b>`
   };
 }
 
 function makeFracToDecTask(frac){
-  const n=frac.n, d=frac.d;
-  const dec = n/d;
+  const dec = frac.n / frac.d;
   const decRounded = Math.round(dec*1000)/1000;
 
-  const hints = [
-    "Tips: Dividera täljaren med nämnaren (täljare ÷ nämnare).",
-    "Om nämnaren blir 100 kan du skriva som hundradelar direkt."
-  ];
-
   return {
-    fromType:"frac",
-    toType:"dec",
     targetType:"dec",
-    prompt:`Omvandla: ${n}/${d} → decimaltal`,
+    prompt:`Omvandla: ${frac.n}/${frac.d} → decimaltal`,
     answerCanonical:decRounded,
-    hints,
+    hints:[
+      "Tips: Dividera täljaren med nämnaren (täljare ÷ nämnare).",
+      "Om nämnaren blir 100 kan du skriva som hundradelar direkt."
+    ],
     revealText:`Rätt svar: <b>${formatSV(decRounded)}</b>`
   };
 }
@@ -493,61 +475,63 @@ function pickFriendlyFrac(level){
             : (level==="medium") ? pick(medDen)
             : pick(hardDen);
 
-  let n = randInt(1, den-1);
+  const n = randInt(1, den-1);
 
-  if(level!=="hard" && chance(0.12)){
+  if(level !== "hard" && chance(0.12)){
     return {n:11, d:25};
   }
 
-  if(chance(0.10) && den!==100){
-    const opts = [
-      {n:7,d:25},{n:9,d:20},{n:3,d:50},{n:13,d:25},{n:17,d:20},{n:19,d:25}
-    ];
-    return pick(opts);
+  if(chance(0.10) && den !== 100){
+    return pick([
+      {n:7,d:25},
+      {n:9,d:20},
+      {n:3,d:50},
+      {n:13,d:25},
+      {n:17,d:20},
+      {n:19,d:25}
+    ]);
   }
+
   return simplifyFrac(n, den);
 }
 
 function pickDec(level){
-  if(level==="easy"){
+  if(level === "easy"){
     const special = [0.37, 1.2, 0.25, 0.5, 0.44, 0.75];
     if(chance(0.22)) return pick(special);
-    const n = randInt(1,99);
-    return Math.round((n/100)*1000)/1000;
+    return Math.round((randInt(1,99)/100)*1000)/1000;
   }
-  if(level==="medium"){
+
+  if(level === "medium"){
     const special = [0.37, 1.2, 0.125, 0.2, 0.05, 0.44, 0.8, 1.5];
     if(chance(0.22)) return pick(special);
     if(chance(0.55)){
-      const n = randInt(1,99);
-      return Math.round((n/100)*1000)/1000;
-    } else {
-      const n = randInt(1,999);
-      return Math.round((n/1000)*1000)/1000;
+      return Math.round((randInt(1,99)/100)*1000)/1000;
     }
+    return Math.round((randInt(1,999)/1000)*1000)/1000;
   }
+
   const special = [0.125, 0.375, 0.6, 1.2, 2.5, 0.04, 0.995];
   if(chance(0.25)) return pick(special);
   if(chance(0.55)){
-    const n = randInt(1,999);
-    return Math.round((n/1000)*1000)/1000;
-  } else {
-    const n = randInt(1,250);
-    return Math.round((n/100)*1000)/1000;
+    return Math.round((randInt(1,999)/1000)*1000)/1000;
   }
+  return Math.round((randInt(1,250)/100)*1000)/1000;
 }
 
 function pickPct(level){
-  if(level==="easy"){
+  if(level === "easy"){
     const list = [5,10,12,20,25,37,44,50,60,75,80,100,120];
     if(chance(0.18)) return 120;
     return pick(list);
   }
-  if(level==="medium"){
+
+  if(level === "medium"){
     const list = [1,5,10,12,15,20,25,30,33,37,40,44,50,60,66,75,80,90,100,120,150,200];
     if(chance(0.12)) return 120;
     return pick(list);
   }
+
   const list = [3,6,7,8,9,12,14,15,16,18,20,22,24,25,28,30,33,35,37,40,44,45,50,55,60,62,66,70,75,80,85,90,95,100,120,125,150,175,200,250];
   if(chance(0.10)) return 120;
   return pick(list);
@@ -556,21 +540,13 @@ function pickPct(level){
 function genTask(level){
   let pairs;
 
-  if(level==="easy"){
+  if(level === "easy"){
     pairs = [
       ["frac","pct"],
       ["dec","pct"],
       ["pct","dec"]
     ];
     if(chance(0.20)) pairs.push(["pct","frac"]);
-  } else if(level==="medium"){
-    pairs = [
-      ["frac","pct"],
-      ["dec","pct"],
-      ["pct","dec"],
-      ["pct","frac"],
-      ["frac","dec"]
-    ];
   } else {
     pairs = [
       ["frac","pct"],
@@ -583,23 +559,23 @@ function genTask(level){
 
   const [fromType,toType] = pick(pairs);
 
-  if(fromType==="frac" && toType==="pct"){
+  if(fromType === "frac" && toType === "pct"){
     return makeFracToPctTask(pickFriendlyFrac(level));
   }
-  if(fromType==="dec" && toType==="pct"){
+  if(fromType === "dec" && toType === "pct"){
     return makeDecToPctTask(pickDec(level));
   }
-  if(fromType==="pct" && toType==="dec"){
+  if(fromType === "pct" && toType === "dec"){
     return makePctToDecTask(pickPct(level));
   }
-  if(fromType==="pct" && toType==="frac"){
+  if(fromType === "pct" && toType === "frac"){
     let pct = pickPct(level);
-    if(level!=="hard" && chance(0.55)){
+    if(level !== "hard" && chance(0.55)){
       pct = pick([10,20,25,50,75,80,120,150,200]);
     }
     return makePctToFracTask(pct);
   }
-  if(fromType==="frac" && toType==="dec"){
+  if(fromType === "frac" && toType === "dec"){
     return makeFracToDecTask(pickFriendlyFrac(level));
   }
 
@@ -608,7 +584,7 @@ function genTask(level){
 
 function buildRound(level){
   const out = [];
-  for(let i=0;i<10;i++) out.push(genTask(level));
+  for(let i = 0; i < 10; i++) out.push(genTask(level));
   return out;
 }
 
@@ -702,8 +678,7 @@ function isCorrectInput(userStr){
   if(cur.targetType === "frac"){
     const f = parseFracInput(userStr);
     if(!f) return false;
-    const t = cur.answerCanonical;
-    return f.n === t.n && f.d === t.d;
+    return f.n === cur.answerCanonical.n && f.d === cur.answerCanonical.d;
   }
 
   return false;
@@ -737,792 +712,7 @@ function checkAnswer(){
       showHint(cur.hints[0] || "Tips: Tänk hundradelar (…/100) och koppla till procent.");
     } else if(wrongThis === 2){
       showHint(cur.hints[1] || cur.hints[0] || "Tips: Procent = ×100 från decimal och ÷100 till decimal.");
-    } else if(wrongThis >= 3){
-      showReveal();
-      hideHint();
-      feedbackDiv.className = "hint";
-      feedbackDiv.textContent = "Nu ser du rätt svar. Skriv det för att gå vidare 🙂";
-    }
-
-    answerInput.focus();
-    answerInput.select();
-  }
-}
-
-/* =========================
-   Events
-========================= */
-startBtn.addEventListener("click", startRound);
-okBtn.addEventListener("click", checkAnswer);
-answerInput.addEventListener("keydown", (e)=>{
-  if(e.key === "Enter") checkAnswer();
-});
-againBtn.addEventListener("click", startRound);
-
-/* =========================
-   Init
-========================= */
-document.addEventListener("DOMContentLoaded", ()=>{
-  loadStars();
-});
-</script>
-</body>
-</html>
-    background:#eef2f7;
-    margin:0;
-    padding:24px 14px 40px;
-  }
-  #app{
-    max-width:980px;
-    margin:0 auto;
-    background:#fff;
-    border-radius:14px;
-    box-shadow:0 6px 22px rgba(0,0,0,0.09);
-    border-top:6px solid #4CAF50;
-    padding:18px 18px 22px;
-    position:relative;
-  }
-  h1{margin:0 0 6px; color:#2e7d32;}
-  p{margin:8px 0 12px; line-height:1.35;}
-  .muted{color:#566; font-size:14px;}
-
-  /* ⭐ pill */
-  #starPill{
-    position:absolute; top:14px; right:14px;
-    background:#fffde7;
-    border:1px solid #ffe082;
-    border-radius:999px;
-    padding:7px 12px;
-    display:flex; align-items:center; gap:8px;
-    font-weight:800; color:#f57f17;
-  }
-  #starPill span{font-size:18px;}
-
-  .topRow{
-    display:flex;
-    gap:12px;
-    flex-wrap:wrap;
-    align-items:center;
-    justify-content:space-between;
-    margin-bottom:10px;
-    padding-right:170px; /* plats för ⭐-pillret */
-  }
-  .backLink{
-    text-decoration:none;
-    color:#1b5e20;
-    background:#f1f8e9;
-    border:2px solid #c5e1a5;
-    padding:8px 10px;
-    border-radius:12px;
-    font-weight:800;
-    display:inline-block;
-  }
-  .backLink:hover{
-    box-shadow:0 4px 12px rgba(0,0,0,0.12);
-    transform: translateY(-1px);
-  }
-
-  .row{
-    display:flex;
-    gap:12px;
-    flex-wrap:wrap;
-    align-items:flex-end;
-    justify-content:space-between;
-    margin-top:8px;
-  }
-
-  .pill{
-    background:#f1f8e9;
-    border:2px solid #c5e1a5;
-    color:#1b5e20;
-    border-radius:999px;
-    padding:6px 10px;
-    font-weight:900;
-    font-size:14px;
-  }
-
-  select, input, button{
-    padding:10px 12px;
-    border-radius:10px;
-    border:1px solid #cfcfcf;
-    font-size:16px;
-  }
-  button{
-    border:none;
-    background:#4CAF50;
-    color:#fff;
-    cursor:pointer;
-    font-weight:900;
-  }
-  button:hover{background:#43a047;}
-  button.secondary{background:#546e7a;}
-  button.secondary:hover{background:#455a64;}
-  button:disabled{opacity:.55; cursor:not-allowed;}
-
-  #gameBox{
-    margin-top:12px;
-    background:#fafafa;
-    border:1px solid #ddd;
-    border-radius:12px;
-    padding:14px;
-  }
-
-  #prompt{
-    font-size:28px;
-    font-weight:900;
-    text-align:center;
-    margin:6px 0 10px;
-    color:#223;
-  }
-
-  #answerRow{
-    display:flex;
-    justify-content:center;
-    gap:10px;
-    flex-wrap:wrap;
-    align-items:center;
-  }
-  #answer{
-    width:260px;
-    text-align:center;
-    font-size:20px;
-    border-radius:999px;
-  }
-
-  #hintLine{
-    display:none;
-    text-align:center;
-    margin:10px auto 0;
-    font-weight:900;
-    color:#334;
-    background:#fff3e0;
-    border:1px solid #ffcc80;
-    border-radius:12px;
-    padding:10px 12px;
-    max-width:760px;
-  }
-
-  #feedback{
-    text-align:center;
-    min-height:50px;
-    margin-top:10px;
-    font-weight:900;
-  }
-  .ok{color:#16a34a; font-size:18px;}
-  .bad{color:#dc2626; font-size:40px; line-height:1;}
-  .hint{color:#334; font-size:14px; font-weight:900;}
-  .reveal{
-    margin-top:8px;
-    display:inline-block;
-    background:#fff3e0;
-    border:1px solid #ffcc80;
-    color:#6d4c41;
-    border-radius:999px;
-    padding:6px 10px;
-    font-weight:900;
-    font-size:14px;
-  }
-
-  .tiny{
-    font-size:12px;
-    color:#556;
-    font-weight:800;
-    margin-top:10px;
-  }
-
-  @media (max-width:520px){
-    #starPill{position:static; margin-bottom:10px;}
-    .topRow{padding-right:0;}
-  }
-</style>
-</head>
-<body>
-
-<div id="app">
-  <div id="starPill"><span>⭐</span> <span id="starsText">0</span></div>
-
-  <div class="topRow">
-    <div>
-      <h1>📈 Bråk • Decimal • Procent</h1>
-      <p class="muted" style="margin:6px 0 0;">
-        Du får stjärnor när du klarar <b>10 omvandlingar</b>.
-        <br><b>Lätt</b> = 1⭐, <b>Medel</b> = 2⭐, <b>Svår</b> = 3⭐.
-        <br>Tips: Svara med <b>%</b> när det efterfrågas, och använd <b>komma</b> eller <b>punkt</b> (båda funkar).
-      </p>
-    </div>
-    <a class="backLink" href="index.html">⬅ Tillbaka till Mattezoo</a>
-  </div>
-
-  <div class="row">
-    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-      <div>
-        <div class="muted" style="font-weight:900; margin-bottom:6px;">Välj nivå</div>
-        <select id="levelSelect">
-          <option value="easy">Lätt (1⭐)</option>
-          <option value="medium">Medel (2⭐)</option>
-          <option value="hard">Svår (3⭐)</option>
-        </select>
-      </div>
-
-      <button id="startBtn" class="secondary">Starta omgång</button>
-    </div>
-
-    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-      <div class="pill">Fråga: <span id="qIdx">0</span> / 10</div>
-      <div class="pill">Fel på denna: <span id="wrongThis">0</span> / 3</div>
-    </div>
-  </div>
-
-  <div id="gameBox" style="display:none;">
-    <div id="prompt">—</div>
-
-    <div id="answerRow">
-      <input id="answer" type="text" inputmode="decimal" placeholder="Skriv svar" />
-      <button id="okBtn">OK</button>
-      <button id="againBtn" class="secondary" style="display:none;">Kör igen</button>
-    </div>
-
-    <div id="hintLine"></div>
-
-    <div id="feedback"></div>
-    <div class="tiny" id="footNote"></div>
-  </div>
-</div>
-
-<script src="daily.js"></script>
-<script src="today.js"></script>
-
-<script>
-/* =========================
-   MATTEZOO-KEYS
-========================= */
-const KEY_STARS = "mathZooStars";
-
-/* =========================
-   STATE
-========================= */
-let stars = 0;
-let level = "easy";
-let tasks = [];
-let taskIndex = 0;
-let wrongThis = 0;
-let roundDone = false;
-let cur = null; // {fromType,toType,prompt,targetType,answerCanonical,hints[],revealText}
-
-/* =========================
-   UI refs
-========================= */
-const starsText = document.getElementById("starsText");
-const levelSelect = document.getElementById("levelSelect");
-const startBtn = document.getElementById("startBtn");
-const gameBox = document.getElementById("gameBox");
-
-const promptDiv = document.getElementById("prompt");
-const answerInput = document.getElementById("answer");
-const okBtn = document.getElementById("okBtn");
-const againBtn = document.getElementById("againBtn");
-
-const hintLine = document.getElementById("hintLine");
-const feedbackDiv = document.getElementById("feedback");
-const qIdxSpan = document.getElementById("qIdx");
-const wrongThisSpan = document.getElementById("wrongThis");
-const footNote = document.getElementById("footNote");
-
-/* =========================
-   Helpers
-========================= */
-function loadStars(){
-  stars = parseInt(localStorage.getItem(KEY_STARS) || "0", 10);
-  if(Number.isNaN(stars)) stars = 0;
-  starsText.textContent = String(stars);
-}
-function addStars(n){
-  stars += n;
-  localStorage.setItem(KEY_STARS, JSON.stringify(stars));
-  starsText.textContent = String(stars);
-}
-
-/* Safe calls */
-function safeDailyIncrement(type, amount=1){
-  try{
-    if(typeof window.mzDailyIncrement === "function"){
-      window.mzDailyIncrement(type, amount);
-    }
-  }catch{}
-}
-function safeTodayIncrement(type, amount=1){
-  try{
-    if(typeof window.mzTodayIncrement === "function"){
-      window.mzTodayIncrement(type, amount);
-    }
-  }catch{}
-}
-
-function randInt(min, max){
-  return Math.floor(Math.random()*(max-min+1)) + min;
-}
-function pick(arr){
-  return arr[Math.floor(Math.random()*arr.length)];
-}
-function chance(p){
-  return Math.random() < p;
-}
-
-function gcd(a,b){
-  a=Math.abs(a); b=Math.abs(b);
-  while(b){ const t=a%b; a=b; b=t; }
-  return a||1;
-}
-function simplifyFrac(n,d){
-  if(d<0){ n=-n; d=-d; }
-  const g = gcd(n,d);
-  return { n:n/g, d:d/g };
-}
-
-function formatSV(n){
-  if(Math.abs(n) < 1e-12) n = 0;
-  let s = (Math.round(n * 1e6) / 1e6).toString();
-  if(s.includes("e")) return s.replace(".", ",");
-  if(s.includes(".")){
-    s = s.replace(/0+$/,"").replace(/\.$/,"");
-  }
-  return s.replace(".", ",");
-}
-
-function parseNumberLoose(s){
-  const t = (s||"").trim().replace(/\s+/g,"").replace(",",".");
-  if(t === "") return null;
-  const n = Number(t);
-  return Number.isFinite(n) ? n : null;
-}
-function parsePercentInput(s){
-  // acceptera "37", "37%", "  37 % "
-  const t = (s||"").trim().replace(/\s+/g,"");
-  if(t === "") return null;
-  const hadPercent = t.includes("%");
-  const cleaned = t.replace("%","").replace(",",".");
-  const n = Number(cleaned);
-  if(!Number.isFinite(n)) return null;
-  return { value:n, hadPercent };
-}
-function parseFracInput(s){
-  // acceptera "11/25" med mellanslag
-  const t = (s||"").trim().replace(/\s+/g,"");
-  const m = t.match(/^(-?\d+)\/(-?\d+)$/);
-  if(!m) return null;
-  const n = parseInt(m[1],10);
-  const d = parseInt(m[2],10);
-  if(!Number.isFinite(n) || !Number.isFinite(d) || d===0) return null;
-  return simplifyFrac(n,d);
-}
-
-function hideHint(){
-  hintLine.style.display = "none";
-  hintLine.textContent = "";
-}
-function showHint(msg){
-  hintLine.textContent = msg;
-  hintLine.style.display = "block";
-}
-
-function awardStarsForLevel(){
-  if(level === "easy") return 1;
-  if(level === "medium") return 2;
-  return 3;
-}
-
-/* =========================
-   Task generation
-   Types: "frac", "dec", "pct"
-   Targets:
-     - pct answerCanonical: number (percenttal, t.ex. 44)
-     - dec answerCanonical: number (t.ex. 1.2)
-     - frac answerCanonical: {n,d} förenklad
-========================= */
-
-function makeFracToPctTask(frac){
-  const n = frac.n, d = frac.d;
-  const pct = (n/d)*100;
-  const pctRounded = Math.round(pct*1000)/1000;
-
-  const hints = [];
-  // specifika "förläng till 100"-hints
-  if(d===25) hints.push("Tips: Förläng med 4 så du får nämnare 100 (…/100).");
-  else if(d===50) hints.push("Tips: Förläng med 2 så du får nämnare 100 (…/100).");
-  else if(d===20) hints.push("Tips: Förläng med 5 så du får nämnare 100 (…/100).");
-  else if(d===10) hints.push("Tips: Förläng med 10 så du får nämnare 100 (…/100).");
-  else if(d===5)  hints.push("Tips: Förläng med 20 så du får nämnare 100 (…/100).");
-  else if(d===2)  hints.push("Tips: Förläng med 50 så du får nämnare 100 (…/100).");
-  else hints.push("Tips: Gör om till decimal (täljare ÷ nämnare) och multiplicera med 100.");
-
-  hints.push("Kom ihåg: x% betyder x per 100.");
-
-  return {
-    fromType:"frac",
-    toType:"pct",
-    targetType:"pct",
-    prompt:`Omvandla: ${n}/${d} → %`,
-    answerCanonical:pctRounded,   // procenttal, t.ex. 44
-    hints,
-    revealText:`Rätt svar: <b>${formatSV(pctRounded)}</b>%`
-  };
-}
-
-function makeDecToPctTask(dec){
-  const pct = dec*100;
-  const pctRounded = Math.round(pct*1000)/1000;
-
-  const hints = [
-    "Tips: Multiplicera decimaltalet med 100.",
-    "Ex: 0,37 × 100 = 37."
-  ];
-
-  return {
-    fromType:"dec",
-    toType:"pct",
-    targetType:"pct",
-    prompt:`Omvandla: ${formatSV(dec)} → %`,
-    answerCanonical:pctRounded,
-    hints,
-    revealText:`Rätt svar: <b>${formatSV(pctRounded)}</b>%`
-  };
-}
-
-function makePctToDecTask(pct){
-  const dec = pct/100;
-  const decRounded = Math.round(dec*1000)/1000;
-
-  const hints = [
-    "Tips: Dela procenttalet med 100.",
-    "Ex: 120% = 120 ÷ 100 = 1,2."
-  ];
-
-  return {
-    fromType:"pct",
-    toType:"dec",
-    targetType:"dec",
-    prompt:`Omvandla: ${formatSV(pct)}% → decimaltal`,
-    answerCanonical:decRounded,
-    hints,
-    revealText:`Rätt svar: <b>${formatSV(decRounded)}</b>`
-  };
-}
-
-function makePctToFracTask(pct){
-  // pct% = pct/100, förenkla
-  const simp = simplifyFrac(pct, 100);
-
-  const hints = [
-    "Tips: Skriv procent som bråk: p% = p/100 och förkorta.",
-    "Ex: 25% = 25/100 = 1/4."
-  ];
-
-  return {
-    fromType:"pct",
-    toType:"frac",
-    targetType:"frac",
-    prompt:`Omvandla: ${formatSV(pct)}% → bråk`,
-    answerCanonical:simp,
-    hints,
-    revealText:`Rätt svar: <b>${simp.n}/${simp.d}</b>`
-  };
-}
-
-function makeFracToDecTask(frac){
-  const n=frac.n, d=frac.d;
-  const dec = n/d;
-  const decRounded = Math.round(dec*1000)/1000;
-
-  const hints = [
-    "Tips: Dividera täljaren med nämnaren (täljare ÷ nämnare).",
-    "Om nämnaren blir 100 kan du skriva som hundradelar direkt."
-  ];
-
-  return {
-    fromType:"frac",
-    toType:"dec",
-    targetType:"dec",
-    prompt:`Omvandla: ${n}/${d} → decimaltal`,
-    answerCanonical:decRounded,
-    hints,
-    revealText:`Rätt svar: <b>${formatSV(decRounded)}</b>`
-  };
-}
-
-function pickFriendlyFrac(level){
-  // "vänliga" nämnare som tränar förlängning till 100
-  const easyDen = [2,4,5,10,20,25,50,100];
-  const medDen  = [2,4,5,8,10,16,20,25,40,50,100];
-  const hardDen = [3,6,8,12,16,24,25,40,50,75,125,200];
-
-  const den = (level==="easy") ? pick(easyDen)
-            : (level==="medium") ? pick(medDen)
-            : pick(hardDen);
-
-  let n = randInt(1, den-1);
-  // ibland skapa "klassiker" som 11/25
-  if(level!=="hard" && chance(0.12)){
-    return {n:11, d:25};
-  }
-  // ibland en "ren" hundradel
-  if(chance(0.10) && den!==100){
-    // gör en som går snyggt till /100 genom multiplikation
-    // t.ex. 7/25, 9/20, 3/50
-    const opts = [
-      {n:7,d:25},{n:9,d:20},{n:3,d:50},{n:13,d:25},{n:17,d:20},{n:19,d:25}
-    ];
-    return pick(opts);
-  }
-  return simplifyFrac(n, den);
-}
-
-function pickDec(level){
-  // lätt: 0.xx (2 decimaler) + några över 1 som 1,2
-  // medel: 0.xxx ibland, men fortfarande "snälla"
-  // svår: fler varianter, inkl 0,125 osv
-  if(level==="easy"){
-    const special = [0.37, 1.2, 0.25, 0.5, 0.44, 0.75];
-    if(chance(0.22)) return pick(special);
-    const n = randInt(1,99);
-    return Math.round((n/100)*1000)/1000;
-  }
-  if(level==="medium"){
-    const special = [0.37, 1.2, 0.125, 0.2, 0.05, 0.44, 0.8, 1.5];
-    if(chance(0.22)) return pick(special);
-    if(chance(0.55)){
-      const n = randInt(1,99);
-      return Math.round((n/100)*1000)/1000;
     } else {
-      const n = randInt(1,999);
-      return Math.round((n/1000)*1000)/1000;
-    }
-  }
-  // hard
-  const special = [0.125, 0.375, 0.6, 1.2, 2.5, 0.04, 0.995];
-  if(chance(0.25)) return pick(special);
-  if(chance(0.55)){
-    const n = randInt(1,999);
-    return Math.round((n/1000)*1000)/1000;
-  } else {
-    const n = randInt(1,250);
-    return Math.round((n/100)*1000)/1000;
-  }
-}
-
-function pickPct(level){
-  if(level==="easy"){
-    const list = [5,10,12,20,25,37,44,50,60,75,80,100,120];
-    // tryck in 120 ibland
-    if(chance(0.18)) return 120;
-    return pick(list);
-  }
-  if(level==="medium"){
-    const list = [1,5,10,12,15,20,25,30,33,37,40,44,50,60,66,75,80,90,100,120,150,200];
-    if(chance(0.12)) return 120;
-    return pick(list);
-  }
-  // hard
-  const list = [3,6,7,8,9,12,14,15,16,18,20,22,24,25,28,30,33,35,37,40,44,45,50,55,60,62,66,70,75,80,85,90,95,100,120,125,150,175,200,250];
-  if(chance(0.10)) return 120;
-  return pick(list);
-}
-
-function genTask(level){
-  // Välj omvandlingstyp per nivå
-  // easy: mycket till/från procent och “snälla” tal
-  // medium: lite mer mix, inkl procent->bråk
-  // hard: mer blandat, inkl bråk->decimal och procent->bråk även >100
-  let pairs;
-
-  if(level==="easy"){
-    pairs = [
-      ["frac","pct"],
-      ["dec","pct"],
-      ["pct","dec"]
-    ];
-    // ibland procent->bråk även på lätt (25%, 50%, 75%)
-    if(chance(0.20)) pairs.push(["pct","frac"]);
-  } else if(level==="medium"){
-    pairs = [
-      ["frac","pct"],
-      ["dec","pct"],
-      ["pct","dec"],
-      ["pct","frac"],
-      ["frac","dec"]
-    ];
-  } else {
-    pairs = [
-      ["frac","pct"],
-      ["dec","pct"],
-      ["pct","dec"],
-      ["pct","frac"],
-      ["frac","dec"]
-    ];
-    // ibland "svårare" bråk->procent som inte är heltal procent
-    // (men vi håller oss ändå mest i rimliga)
-  }
-
-  const [fromType,toType] = pick(pairs);
-
-  if(fromType==="frac" && toType==="pct"){
-    return makeFracToPctTask(pickFriendlyFrac(level));
-  }
-  if(fromType==="dec" && toType==="pct"){
-    return makeDecToPctTask(pickDec(level));
-  }
-  if(fromType==="pct" && toType==="dec"){
-    return makePctToDecTask(pickPct(level));
-  }
-  if(fromType==="pct" && toType==="frac"){
-    // på lätt/medel: välj oftare procent som ger enkla bråk
-    let pct = pickPct(level);
-    if(level!=="hard" && chance(0.55)){
-      pct = pick([10,20,25,50,75,80,120,150,200]);
-    }
-    return makePctToFracTask(pct);
-  }
-  if(fromType==="frac" && toType==="dec"){
-    return makeFracToDecTask(pickFriendlyFrac(level));
-  }
-
-  // fallback
-  return makeDecToPctTask(0.37);
-}
-
-function buildRound(level){
-  const out = [];
-  for(let i=0;i<10;i++) out.push(genTask(level));
-  return out;
-}
-
-/* =========================
-   Game flow
-========================= */
-function startRound(){
-  level = levelSelect.value;
-  tasks = buildRound(level);
-  taskIndex = 0;
-  wrongThis = 0;
-  roundDone = false;
-  cur = tasks[0];
-
-  gameBox.style.display = "block";
-  againBtn.style.display = "none";
-  okBtn.disabled = false;
-
-  feedbackDiv.textContent = "";
-  feedbackDiv.className = "";
-  footNote.textContent = "";
-  hideHint();
-
-  answerInput.value = "";
-  answerInput.focus();
-
-  renderTask();
-}
-
-function renderTask(){
-  qIdxSpan.textContent = String(taskIndex + 1);
-  wrongThisSpan.textContent = String(wrongThis);
-
-  promptDiv.textContent = cur.prompt;
-
-  feedbackDiv.textContent = "";
-  feedbackDiv.className = "";
-  footNote.textContent = "";
-  hideHint();
-}
-
-function finishRound(){
-  roundDone = true;
-  const earned = awardStarsForLevel();
-  addStars(earned);
-
-
-
-  feedbackDiv.textContent = `🎉 Omgång klar! Du fick ${earned} ⭐.`;
-  feedbackDiv.className = "ok";
-  footNote.textContent = "Kör igen för att träna mer, eller byt nivå.";
-
-  okBtn.disabled = true;
-  againBtn.style.display = "inline-block";
-  answerInput.blur();
-}
-
-function nextTask(){
-  taskIndex += 1;
-  wrongThis = 0;
-
-  if(taskIndex >= tasks.length){
-    finishRound();
-    return;
-  }
-
-  cur = tasks[taskIndex];
-  answerInput.value = "";
-  answerInput.focus();
-  renderTask();
-}
-
-function showReveal(){
-  footNote.innerHTML = `<span class="reveal">${cur.revealText}</span>`;
-}
-
-function isCorrectInput(userStr){
-  // jämför beroende på targetType
-  if(cur.targetType === "pct"){
-    const parsed = parsePercentInput(userStr);
-    if(!parsed) return false;
-    // acceptera med eller utan procenttecken, men värdet ska matcha procenttalet
-    const u = parsed.value;
-    return Math.abs(u - cur.answerCanonical) < 1e-9;
-  }
-
-  if(cur.targetType === "dec"){
-    const n = parseNumberLoose(userStr);
-    if(n === null) return false;
-    return Math.abs(n - cur.answerCanonical) < 1e-9;
-  }
-
-  if(cur.targetType === "frac"){
-    const f = parseFracInput(userStr);
-    if(!f) return false;
-    const t = cur.answerCanonical;
-    return f.n === t.n && f.d === t.d;
-  }
-
-  return false;
-}
-
-function checkAnswer(){
-  if(roundDone) return;
-
-  const user = (answerInput.value || "").trim();
-  if(user === ""){
-    feedbackDiv.textContent = " ";
-    feedbackDiv.className = "bad";
-    return;
-  }
-
-  if(isCorrectInput(user)){
-    feedbackDiv.textContent = "Rätt!";
-    feedbackDiv.className = "ok";
-    footNote.textContent = "";
-    hideHint();
-
-    setTimeout(nextTask, 450);
-  } else {
-    wrongThis += 1;
-    wrongThisSpan.textContent = String(wrongThis);
-
-    feedbackDiv.textContent = "✖";
-    feedbackDiv.className = "bad";
-
-    if(wrongThis === 1){
-      showHint(cur.hints[0] || "Tips: Tänk hundradelar (…/100) och koppla till procent.");
-    } else if(wrongThis === 2){
-      showHint(cur.hints[1] || cur.hints[0] || "Tips: Procent = ×100 från decimal och ÷100 till decimal.");
-    } else if(wrongThis >= 3){
       showReveal();
       hideHint();
       feedbackDiv.className = "hint";
@@ -1533,8 +723,7 @@ function checkAnswer(){
     answerInput.select();
   }
 }
-safeDailyIncrement("percent", 1);
-safeTodayIncrement("percent", 1);
+
 /* =========================
    Events
 ========================= */
