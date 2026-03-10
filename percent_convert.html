@@ -1438,10 +1438,7 @@ function finishRound(){
   const earned = awardStarsForLevel();
   addStars(earned);
 
-  // Använd "frac" som typ eftersom ni redan verkar ha den i daily-setup
-  // (och det här spelet hör dit).
-  safeDailyIncrement("frac", 1);
-  safeTodayIncrement("frac", 1);
+
 
   feedbackDiv.textContent = `🎉 Omgång klar! Du fick ${earned} ⭐.`;
   feedbackDiv.className = "ok";
