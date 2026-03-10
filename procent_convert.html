@@ -44,7 +44,7 @@
     align-items:center;
     justify-content:space-between;
     margin-bottom:10px;
-    padding-right:170px; /* plats för ⭐-pillret */
+    padding-right:170px;
   }
   .backLink{
     text-decoration:none;
@@ -246,7 +246,7 @@ let tasks = [];
 let taskIndex = 0;
 let wrongThis = 0;
 let roundDone = false;
-let cur = null; // {fromType,toType,prompt,targetType,answerCanonical,hints[],revealText}
+let cur = null;
 
 /* =========================
    UI refs
@@ -281,7 +281,6 @@ function addStars(n){
   starsText.textContent = String(stars);
 }
 
-/* Safe calls */
 function safeDailyIncrement(type, amount=1){
   try{
     if(typeof window.mzDailyIncrement === "function"){
@@ -335,17 +334,14 @@ function parseNumberLoose(s){
   return Number.isFinite(n) ? n : null;
 }
 function parsePercentInput(s){
-  // acceptera "37", "37%", "  37 % "
   const t = (s||"").trim().replace(/\s+/g,"");
   if(t === "") return null;
-  const hadPercent = t.includes("%");
   const cleaned = t.replace("%","").replace(",",".");
   const n = Number(cleaned);
   if(!Number.isFinite(n)) return null;
-  return { value:n, hadPercent };
+  return { value:n };
 }
 function parseFracInput(s){
-  // acceptera "11/25" med mellanslag
   const t = (s||"").trim().replace(/\s+/g,"");
   const m = t.match(/^(-?\d+)\/(-?\d+)$/);
   if(!m) return null;
@@ -372,20 +368,13 @@ function awardStarsForLevel(){
 
 /* =========================
    Task generation
-   Types: "frac", "dec", "pct"
-   Targets:
-     - pct answerCanonical: number (percenttal, t.ex. 44)
-     - dec answerCanonical: number (t.ex. 1.2)
-     - frac answerCanonical: {n,d} förenklad
 ========================= */
-
 function makeFracToPctTask(frac){
   const n = frac.n, d = frac.d;
   const pct = (n/d)*100;
   const pctRounded = Math.round(pct*1000)/1000;
 
   const hints = [];
-  // specifika "förläng till 100"-hints
   if(d===25) hints.push("Tips: Förläng med 4 så du får nämnare 100 (…/100).");
   else if(d===50) hints.push("Tips: Förläng med 2 så du får nämnare 100 (…/100).");
   else if(d===20) hints.push("Tips: Förläng med 5 så du får nämnare 100 (…/100).");
@@ -401,7 +390,7 @@ function makeFracToPctTask(frac){
     toType:"pct",
     targetType:"pct",
     prompt:`Omvandla: ${n}/${d} → %`,
-    answerCanonical:pctRounded,   // procenttal, t.ex. 44
+    answerCanonical:pctRounded,
     hints,
     revealText:`Rätt svar: <b>${formatSV(pctRounded)}</b>%`
   };
@@ -448,7 +437,6 @@ function makePctToDecTask(pct){
 }
 
 function makePctToFracTask(pct){
-  // pct% = pct/100, förenkla
   const simp = simplifyFrac(pct, 100);
 
   const hints = [
@@ -489,7 +477,6 @@ function makeFracToDecTask(frac){
 }
 
 function pickFriendlyFrac(level){
-  // "vänliga" nämnare som tränar förlängning till 100
   const easyDen = [2,4,5,10,20,25,50,100];
   const medDen  = [2,4,5,8,10,16,20,25,40,50,100];
   const hardDen = [3,6,8,12,16,24,25,40,50,75,125,200];
@@ -499,14 +486,12 @@ function pickFriendlyFrac(level){
             : pick(hardDen);
 
   let n = randInt(1, den-1);
-  // ibland skapa "klassiker" som 11/25
+
   if(level!=="hard" && chance(0.12)){
     return {n:11, d:25};
   }
-  // ibland en "ren" hundradel
+
   if(chance(0.10) && den!==100){
-    // gör en som går snyggt till /100 genom multiplikation
-    // t.ex. 7/25, 9/20, 3/50
     const opts = [
       {n:7,d:25},{n:9,d:20},{n:3,d:50},{n:13,d:25},{n:17,d:20},{n:19,d:25}
     ];
@@ -516,9 +501,6 @@ function pickFriendlyFrac(level){
 }
 
 function pickDec(level){
-  // lätt: 0.xx (2 decimaler) + några över 1 som 1,2
-  // medel: 0.xxx ibland, men fortfarande "snälla"
-  // svår: fler varianter, inkl 0,125 osv
   if(level==="easy"){
     const special = [0.37, 1.2, 0.25, 0.5, 0.44, 0.75];
     if(chance(0.22)) return pick(special);
@@ -536,7 +518,6 @@ function pickDec(level){
       return Math.round((n/1000)*1000)/1000;
     }
   }
-  // hard
   const special = [0.125, 0.375, 0.6, 1.2, 2.5, 0.04, 0.995];
   if(chance(0.25)) return pick(special);
   if(chance(0.55)){
@@ -551,7 +532,6 @@ function pickDec(level){
 function pickPct(level){
   if(level==="easy"){
     const list = [5,10,12,20,25,37,44,50,60,75,80,100,120];
-    // tryck in 120 ibland
     if(chance(0.18)) return 120;
     return pick(list);
   }
@@ -560,17 +540,12 @@ function pickPct(level){
     if(chance(0.12)) return 120;
     return pick(list);
   }
-  // hard
   const list = [3,6,7,8,9,12,14,15,16,18,20,22,24,25,28,30,33,35,37,40,44,45,50,55,60,62,66,70,75,80,85,90,95,100,120,125,150,175,200,250];
   if(chance(0.10)) return 120;
   return pick(list);
 }
 
 function genTask(level){
-  // Välj omvandlingstyp per nivå
-  // easy: mycket till/från procent och “snälla” tal
-  // medium: lite mer mix, inkl procent->bråk
-  // hard: mer blandat, inkl bråk->decimal och procent->bråk även >100
   let pairs;
 
   if(level==="easy"){
@@ -579,7 +554,6 @@ function genTask(level){
       ["dec","pct"],
       ["pct","dec"]
     ];
-    // ibland procent->bråk även på lätt (25%, 50%, 75%)
     if(chance(0.20)) pairs.push(["pct","frac"]);
   } else if(level==="medium"){
     pairs = [
@@ -597,8 +571,6 @@ function genTask(level){
       ["pct","frac"],
       ["frac","dec"]
     ];
-    // ibland "svårare" bråk->procent som inte är heltal procent
-    // (men vi håller oss ändå mest i rimliga)
   }
 
   const [fromType,toType] = pick(pairs);
@@ -613,7 +585,6 @@ function genTask(level){
     return makePctToDecTask(pickPct(level));
   }
   if(fromType==="pct" && toType==="frac"){
-    // på lätt/medel: välj oftare procent som ger enkla bråk
     let pct = pickPct(level);
     if(level!=="hard" && chance(0.55)){
       pct = pick([10,20,25,50,75,80,120,150,200]);
@@ -624,7 +595,6 @@ function genTask(level){
     return makeFracToDecTask(pickFriendlyFrac(level));
   }
 
-  // fallback
   return makeDecToPctTask(0.37);
 }
 
@@ -677,7 +647,8 @@ function finishRound(){
   const earned = awardStarsForLevel();
   addStars(earned);
 
-
+  safeDailyIncrement("percent", 1);
+  safeTodayIncrement("percent", 1);
 
   feedbackDiv.textContent = `🎉 Omgång klar! Du fick ${earned} ⭐.`;
   feedbackDiv.className = "ok";
@@ -708,13 +679,10 @@ function showReveal(){
 }
 
 function isCorrectInput(userStr){
-  // jämför beroende på targetType
   if(cur.targetType === "pct"){
     const parsed = parsePercentInput(userStr);
     if(!parsed) return false;
-    // acceptera med eller utan procenttecken, men värdet ska matcha procenttalet
-    const u = parsed.value;
-    return Math.abs(u - cur.answerCanonical) < 1e-9;
+    return Math.abs(parsed.value - cur.answerCanonical) < 1e-9;
   }
 
   if(cur.targetType === "dec"){
