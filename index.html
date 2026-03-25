@@ -288,6 +288,7 @@
   .ocean{background:#dbeeff;}
   .ice{background:#dff7fb;}
   .fantasy{background:#f3e3fb;}
+  .easter{background:#fff4cc;}
 
   .space{background:#0b1020;}
   .space .zoneHeader, .space .zoneBody, .space .zoneMeta{ color:#e8eefc; }
@@ -701,8 +702,42 @@ function isValentineWindow(){
   const d = now.getDate();
   return (m === 2 && d >= 12 && d <= 15);
 }
+
+function getEasterSunday(year){
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+function isEasterWindow(){
+  const now = new Date();
+  const easter = getEasterSunday(now.getFullYear());
+
+  const start = new Date(easter);
+  start.setDate(easter.getDate() - 7);
+  start.setHours(0,0,0,0);
+
+  const end = new Date(easter);
+  end.setDate(easter.getDate() - 1);
+  end.setHours(23,59,59,999);
+
+  return now >= start && now <= end;
+}
+
 function isEventZone(key){
-  return key === "valentine";
+  return key === "valentine" || key === "easter";
 }
 
 const ZONES = [
@@ -712,7 +747,8 @@ const ZONES = [
   { key:"ice",     name:"Is",          icon:"❄️", cls:"ice"     },
   { key:"fantasy", name:"Fantasi",     icon:"🐉", cls:"fantasy" },
   { key:"space",   name:"Rymd",        icon:"🪐", cls:"space"   },
-  { key:"valentine", name:"Alla hjärtans", icon:"💗", cls:"valentine" }
+  { key:"valentine", name:"Alla hjärtans", icon:"💗", cls:"valentine" },
+  { key:"easter", name:"Påsk", icon:"🐣", cls:"easter" }
 ];
 
 const UNLOCK_REQ = {
@@ -721,7 +757,8 @@ const UNLOCK_REQ = {
   ice:       { stars:10, mult:6,  eq:6,  label:"Klara 6 multiplikationer + 6 ekvationer" },
   fantasy:   { stars:10, mult:10, eq:10, label:"Klara 10 multiplikationer + 10 ekvationer" },
   space:     { stars:10, mult:12, eq:12, label:"Klara 12 multiplikationer + 12 ekvationer" },
-  valentine: { stars:10, mult:2,  eq:2,  label:"Klara 2 multiplikationer + 2 ekvationer (12–15 feb)" }
+  valentine: { stars:10, mult:2,  eq:2,  label:"Klara 2 multiplikationer + 2 ekvationer (12–15 feb)" },
+  easter:    { stars:10, mult:3,  eq:3,  label:"Klara 3 multiplikationer + 3 ekvationer (veckan före påsk)" }
 };
 
 const PRICES = { animal: 3, decor: 2, blind: 4, unlock: 10 };
@@ -769,6 +806,12 @@ const ANIMALS_POOL = {
     uncommon: ["🦊","🦄"],
     rare:     ["🕊️","🦢"],
     epic:     ["💘🐉"]
+  },
+  easter:{
+    common:   ["🐣","🐥","🐰","🐤"],
+    uncommon: ["🦆","🐑"],
+    rare:     ["🪺","🦢"],
+    epic:     ["🥚🐉"]
   }
 };
 
@@ -792,7 +835,8 @@ const DECOR_BY_ZONE = {
   ice:      ["⛄","🏔️","🧊","❄️","🪨","🧣"],
   fantasy:  ["✨","🏰","🪄","🔮","🌙","🕯️"],
   space:    ["⭐","🌟","✨","☄️","🌙","🛰️","🪐","🌌"],
-  valentine:["💗","💖","💝","🍫","🍓","🌹","🌷","💐"]
+  valentine:["💗","💖","💝","🍫","🍓","🌹","🌷","💐"],
+  easter:   ["🥚","🐣","🌷","🌼","🧺","🍫","🐇","🪺","🥕"]
 };
 
 let stars = 0;
@@ -802,11 +846,12 @@ let unlocked = {
   forest:true,
   savannah:false, ocean:false, ice:false, fantasy:false,
   space:false,
-  valentine:false
+  valentine:false,
+  easter:false
 };
 
-let animalsByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[] };
-let storageByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[] };
+let animalsByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[], easter:[] };
+let storageByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[], easter:[] };
 
 let decorGridByZone = {
   forest:Array(36).fill(null),
@@ -815,7 +860,8 @@ let decorGridByZone = {
   ice:Array(36).fill(null),
   fantasy:Array(36).fill(null),
   space:Array(36).fill(null),
-  valentine:Array(36).fill(null)
+  valentine:Array(36).fill(null),
+  easter:Array(36).fill(null)
 };
 
 let progress = { mult:0, eq:0 };
@@ -871,11 +917,17 @@ function loadState(){
 
   const a = localStorage.getItem(KEY_ANIMALS);
   if(a){
-    animalsByZone = normalizeZonesObj(safeParse(a, null), ()=>({ forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[] }));
+    animalsByZone = normalizeZonesObj(
+      safeParse(a, null),
+      ()=>({ forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[], easter:[] })
+    );
   }
   const st = localStorage.getItem(KEY_STORAGE);
   if(st){
-    storageByZone = normalizeZonesObj(safeParse(st, null), ()=>({ forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[] }));
+    storageByZone = normalizeZonesObj(
+      safeParse(st, null),
+      ()=>({ forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[], easter:[] })
+    );
   }
 
   const d = localStorage.getItem(KEY_DECOR);
@@ -935,6 +987,10 @@ function nextLockedZoneKey(){
 function canUnlock(zoneKey){
   if(zoneKey === "valentine" && !unlocked.valentine){
     if(!isValentineWindow()) return false;
+  }
+
+  if(zoneKey === "easter" && !unlocked.easter){
+    if(!isEasterWindow()) return false;
   }
 
   const req = UNLOCK_REQ[zoneKey];
@@ -1281,6 +1337,9 @@ function renderHabitat(zoneKey){
   if(zoneKey === "valentine"){
     hab.style.background = "rgba(255,255,255,0.55)";
   }
+  if(zoneKey === "easter"){
+    hab.style.background = "rgba(255,248,220,0.75)";
+  }
 
   if(!unlocked[zoneKey]){
     const hint = document.createElement("div");
@@ -1423,6 +1482,15 @@ function renderZoo(){
           <p style="margin-top:10px;">
             💗 Detta är ett <b>limited</b> habitat.<br>
             Du kan bara låsa upp det <b>12–15 februari</b>.<br>
+            (Har du låst upp det en gång så behåller du det.)
+          </p>
+        `;
+      } else if(z.key === "easter" && !isEasterWindow()){
+        box.innerHTML = `
+          <h4>${z.name} är låst 🔒</h4>
+          <p style="margin-top:10px;">
+            🐣 Detta är ett <b>limited</b> habitat.<br>
+            Du kan bara låsa upp det <b>veckan före påsk</b>.<br>
             (Har du låst upp det en gång så behåller du det.)
           </p>
         `;
@@ -1600,6 +1668,27 @@ function renderShop(){
       infoV.style.marginTop = "6px";
       infoV.textContent = "Kan bara låsas upp 12–15 feb. (Trophy: behålls när du väl fått den.)";
       items.appendChild(infoV);
+    }
+
+    if(isEasterWindow() && !unlocked.easter){
+      const sepE = document.createElement("div");
+      sepE.className = "muted";
+      sepE.style.marginTop = "10px";
+      sepE.textContent = "Limited event:";
+      items.appendChild(sepE);
+
+      const btnE = document.createElement("button");
+      btnE.className = "shopItemBtn";
+      btnE.textContent = `🐣 Lås upp Påsk (${PRICES.unlock}⭐)`;
+      btnE.disabled = !canUnlock("easter");
+      btnE.onclick = () => unlockZone("easter");
+      items.appendChild(btnE);
+
+      const infoE = document.createElement("div");
+      infoE.className = "muted";
+      infoE.style.marginTop = "6px";
+      infoE.textContent = "Kan bara låsas upp veckan före påsk. (Har du fått det en gång så behåller du det.)";
+      items.appendChild(infoE);
     }
 
     return;
