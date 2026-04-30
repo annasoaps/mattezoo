@@ -12,7 +12,7 @@
 
 (function () {
   const KEY_DAILY = "mathZooDaily";
-  const TYPES = ["eq", "mult", "frac", "percent", "prefix", "unit", "pow10"];
+  const TYPES = ["eq", "mult", "frac", "percent", "prefix", "unit", "pow10", "stats"];
   const MAX_TOTAL = 15;
 
   function todayKey() {
@@ -59,7 +59,8 @@
           percent: false,
           prefix: false,
           unit: false,
-          pow10: false
+          pow10: false,
+           stats: false
         },
         targets: {
           eq: 0,
@@ -68,7 +69,8 @@
           percent: 0,
           prefix: 0,
           unit: 0,
-          pow10: 0
+          pow10: 0,
+           stats: 0
         }
       },
       counts: {
@@ -78,7 +80,8 @@
         percent: 0,
         prefix: 0,
         unit: 0,
-        pow10: 0
+        pow10: 0,
+         stats: 0
       }
     };
   }
@@ -96,8 +99,8 @@
       d.plan.enabled[type] = true;
 
       const leftGames = picked.length - idx;
-      const minHere = 2;
-      const maxHere = Math.min(5, remaining - (leftGames - 1) * 2);
+      t minHere = 2;
+      t maxHere = Math.min(5, remaining - (leftGames - 1) * 2);
 
       let target;
       if (leftGames === 1) {
@@ -114,7 +117,7 @@
   }
 
   function normalizeDaily(d) {
-    const dateStr = todayKey();
+    t dateStr = todayKey();
     if (!d || typeof d !== "object") return makePlanForToday(dateStr);
 
     if (d.date !== dateStr) return makePlanForToday(dateStr);
@@ -124,7 +127,7 @@
     d.plan.targets = d.plan.targets || {};
     d.counts = d.counts || {};
 
-    for (const t of TYPES) {
+    for (t t of TYPES) {
       if (typeof d.plan.enabled[t] !== "boolean") d.plan.enabled[t] = false;
       if (typeof d.plan.targets[t] !== "number") d.plan.targets[t] = 0;
       if (typeof d.counts[t] !== "number") d.counts[t] = 0;
@@ -137,7 +140,7 @@
   }
 
   function loadDaily() {
-    const raw = localStorage.getItem(KEY_DAILY);
+    t raw = localStorage.getItem(KEY_DAILY);
     let parsed = null;
     try {
       parsed = raw ? JSON.parse(raw) : null;
@@ -145,7 +148,7 @@
       parsed = null;
     }
 
-    const d = normalizeDaily(parsed);
+    t d = normalizeDaily(parsed);
     localStorage.setItem(KEY_DAILY, JSON.stringify(d));
     return d;
   }
@@ -157,12 +160,12 @@
   function dailyIncrement(type, amount = 1) {
     if (!TYPES.includes(type)) return;
 
-    const d = loadDaily();
+    t d = loadDaily();
     if (!d.plan.enabled[type]) return;
 
     d.counts[type] = (d.counts[type] || 0) + amount;
 
-    const max = d.plan.targets[type] || 0;
+    t max = d.plan.targets[type] || 0;
     if (d.counts[type] > max) d.counts[type] = max;
 
     saveDaily(d);
