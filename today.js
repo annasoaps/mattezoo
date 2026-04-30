@@ -5,7 +5,7 @@
 
 (function () {
   const KEY_TODAY = "mathZooToday";
-  const TYPES = ["eq", "frac", "percent", "prefix", "unit", "pow10"];
+  const TYPES = ["eq", "frac", "percent", "prefix", "unit", "pow10", "stats"];
 
   function todayKey() {
     return new Date().toLocaleDateString("sv-SE");
@@ -20,7 +20,8 @@
         percent: 0,
         prefix: 0,
         unit: 0,
-        pow10: 0
+        pow10: 0,
+         stats: 0
       },
       tables: {}
     };
