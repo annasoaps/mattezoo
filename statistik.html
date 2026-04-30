@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mattezoo – Statistik</title>
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#eef2f7;
+  margin:0;
+  padding:24px 14px 40px;
+}
+#app{
+  max-width:980px;
+  margin:0 auto;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 6px 22px rgba(0,0,0,0.09);
+  border-top:6px solid #4CAF50;
+  padding:18px;
+  position:relative;
+}
+
+h1{color:#2e7d32;}
+
+#starPill{
+  position:absolute; top:14px; right:14px;
+  background:#fffde7;
+  border:1px solid #ffe082;
+  border-radius:999px;
+  padding:7px 12px;
+  font-weight:800;
+  color:#f57f17;
+}
+
+.pill{
+  background:#f1f8e9;
+  border:2px solid #c5e1a5;
+  border-radius:999px;
+  padding:6px 10px;
+  font-weight:900;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+}
+th, td{
+  border:1px solid #ddd;
+  padding:6px;
+  text-align:center;
+}
+input{
+  width:90%;
+  padding:6px;
+  text-align:center;
+}
+
+button{
+  margin-top:10px;
+  padding:10px 14px;
+  border:none;
+  border-radius:10px;
+  background:#4CAF50;
+  color:#fff;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.ok{color:#16a34a; font-weight:900;}
+.hint{color:#444; font-weight:900;}
+</style>
+</head>
+
+<body>
+<div id="app">
+
+<div id="starPill">⭐ <span id="starsText">0</span></div>
+
+<h1>📊 Statistik</h1>
+
+<div class="pill">Uppgift: <span id="qIdx">1</span> / 1</div>
+
+<div id="prompt"></div>
+
+<table>
+<thead>
+<tr>
+<th>Värde</th>
+<th>Frekvens</th>
+<th>Relativ frekvens (%)</th>
+</tr>
+</thead>
+
+<tbody id="tableBody"></tbody>
+
+<tfoot>
+<tr>
+<th>Totalt</th>
+<td><input id="totalFreqInput"></td>
+<td><input id="totalRelInput"></td>
+</tr>
+</tfoot>
+</table>
+
+<div style="margin-top:12px;">
+Median: <input id="medianInput">
+Medelvärde: <input id="meanInput">
+Typvärde: <input id="modeInput">
+</div>
+
+<button onclick="checkAnswer()">Kolla svar</button>
+
+<div id="feedback"></div>
+<div id="footNote"></div>
+
+</div>
+
+<script>
+const KEY_STARS = "mathZooStars";
+
+let stars = 0;
+let cur = null;
+
+const starsText = document.getElementById("starsText");
+const tableBody = document.getElementById("tableBody");
+
+const totalFreqInput = document.getElementById("totalFreqInput");
+const totalRelInput = document.getElementById("totalRelInput");
+
+const medianInput = document.getElementById("medianInput");
+const meanInput = document.getElementById("meanInput");
+const modeInput = document.getElementById("modeInput");
+
+const feedbackDiv = document.getElementById("feedback");
+const footNote = document.getElementById("footNote");
+
+function loadStars(){
+  stars = parseInt(localStorage.getItem(KEY_STARS)||"0");
+  starsText.textContent = stars;
+}
+function addStars(n){
+  stars += n;
+  localStorage.setItem(KEY_STARS, stars);
+  starsText.textContent = stars;
+}
+
+function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+
+function genTask(){
+  const arr = [];
+  const n = randInt(6,10);
+
+  for(let i=0;i<n;i++){
+    arr.push(randInt(1,6));
+  }
+
+  const counts = {};
+  arr.forEach(x=>counts[x]=(counts[x]||0)+1);
+
+  const unique = Object.keys(counts).map(Number);
+
+  const sorted = [...arr].sort((a,b)=>a-b);
+
+  const median = sorted[Math.floor(n/2)];
+  const mean = arr.reduce((a,b)=>a+b,0)/n;
+
+  let max = 0;
+  let modes = [];
+  for(const k in counts){
+    if(counts[k] > max){
+      max = counts[k];
+      modes = [Number(k)];
+    } else if(counts[k] === max){
+      modes.push(Number(k));
+    }
+  }
+
+  return {arr, counts, unique, total:n, median, mean, modes};
+}
+
+function renderTask(){
+  cur = genTask();
+
+  document.getElementById("prompt").innerHTML =
+    "Data: <b>" + cur.arr.join(", ") + "</b>";
+
+  tableBody.innerHTML = "";
+
+  cur.unique.forEach(v=>{
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td>${v}</td>
+      <td><input data-kind="freq" data-value="${v}"></td>
+      <td><input data-kind="rel" data-value="${v}"></td>
+    `;
+    tableBody.appendChild(row);
+  });
+
+  totalFreqInput.value="";
+  totalRelInput.value="";
+  medianInput.value="";
+  meanInput.value="";
+  modeInput.value="";
+}
+
+function parseNumber(x){
+  if(!x) return null;
+  return Number(x.replace(",","."));
+}
+
+function checkAnswer(){
+
+  let ok = true;
+  let issues = [];
+
+  const inputs = tableBody.querySelectorAll("input");
+
+  inputs.forEach(inp=>{
+    const val = Number(inp.dataset.value);
+    const kind = inp.dataset.kind;
+    const user = parseNumber(inp.value);
+
+    if(user === null){ ok=false; return; }
+
+    if(kind==="freq"){
+      if(user !== cur.counts[val]){
+        ok=false;
+        issues.push("frekvens");
+      }
+    }
+
+    if(kind==="rel"){
+      const correct = cur.counts[val]/cur.total*100;
+      if(Math.abs(user-correct)>0.1){
+        ok=false;
+        issues.push("relativ frekvens");
+      }
+    }
+  });
+
+  if(parseNumber(totalFreqInput.value) !== cur.total){
+    ok=false;
+    issues.push("totalt n");
+  }
+
+  if(Math.abs(parseNumber(totalRelInput.value)-100)>0.1){
+    ok=false;
+    issues.push("100%");
+  }
+
+  if(parseNumber(medianInput.value) !== cur.median){
+    ok=false;
+    issues.push("median");
+  }
+
+  if(Math.abs(parseNumber(meanInput.value)-cur.mean)>0.1){
+    ok=false;
+    issues.push("medelvärde");
+  }
+
+  const modesUser = modeInput.value.split(",").map(x=>parseNumber(x.trim())).sort();
+  const modesCorrect = cur.modes.sort();
+
+  if(JSON.stringify(modesUser) !== JSON.stringify(modesCorrect)){
+    ok=false;
+    issues.push("typvärde");
+  }
+
+  if(ok){
+    feedbackDiv.innerHTML = "✅ Helt rätt!";
+    feedbackDiv.className="ok";
+    addStars(2);
+  } else {
+    feedbackDiv.innerHTML = "✖ Kolla: " + [...new Set(issues)].join(", ");
+    feedbackDiv.className="hint";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  loadStars();
+  renderTask();
+});
+</script>
+
+</body>
+</html>
