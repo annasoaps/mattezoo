@@ -289,6 +289,8 @@
   .ice{background:#dff7fb;}
   .fantasy{background:#f3e3fb;}
   .easter{background:#fff4cc;}
+  .spring{background:#e9fbe7;}
+  .spring .habitat{background:linear-gradient(180deg, rgba(255,255,255,0.72), rgba(220,255,220,0.78));}
 
   .space{background:#0b1020;}
   .space .zoneHeader, .space .zoneBody, .space .zoneMeta{ color:#e8eefc; }
@@ -506,6 +508,11 @@
           <h3>🔟 × och ÷ med 10, 100, 1000</h3>
           <p>Flytta decimalen åt rätt håll och samla ⭐.</p>
         </a>
+
+        <a class="gameBtn" href="statistik.html">
+          <h3>📊 Statistik</h3>
+          <p>Träna frekvens, relativ frekvens och lägesmått.</p>
+        </a>
       </div>
 
       <div id="dailyBox">
@@ -547,6 +554,11 @@
         <div class="dailyLine">
           <span id="dailyLabelPow10">× / ÷ med 10, 100, 1000:</span>
           <b id="dPow10">0/0</b>
+        </div>
+
+        <div class="dailyLine">
+          <span id="dailyLabelStats">Statistik:</span>
+          <b id="dStats">0/0</b>
         </div>
 
         <div id="dailyStatus">Gör uppdragen så låser du upp dagens blind bag 🎁</div>
@@ -703,6 +715,13 @@ function isValentineWindow(){
   return (m === 2 && d >= 12 && d <= 15);
 }
 
+function isSpringWindow(){
+  const now = new Date();
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+  return (m === 4 && d >= 30) || (m === 5 && d <= 15);
+}
+
 function getEasterSunday(year){
   const a = year % 19;
   const b = Math.floor(year / 100);
@@ -737,7 +756,7 @@ function isEasterWindow(){
 }
 
 function isEventZone(key){
-  return key === "valentine" || key === "easter";
+  return key === "valentine" || key === "easter" || key === "spring";
 }
 
 const ZONES = [
@@ -748,7 +767,8 @@ const ZONES = [
   { key:"fantasy", name:"Fantasi",     icon:"🐉", cls:"fantasy" },
   { key:"space",   name:"Rymd",        icon:"🪐", cls:"space"   },
   { key:"valentine", name:"Alla hjärtans", icon:"💗", cls:"valentine" },
-  { key:"easter", name:"Påsk", icon:"🐣", cls:"easter" }
+  { key:"easter", name:"Påsk", icon:"🐣", cls:"easter" },
+  { key:"spring", name:"Vår", icon:"🌸", cls:"spring" }
 ];
 
 const UNLOCK_REQ = {
@@ -758,7 +778,8 @@ const UNLOCK_REQ = {
   fantasy:   { stars:10, mult:10, eq:10, label:"Klara 10 multiplikationer + 10 ekvationer" },
   space:     { stars:10, mult:12, eq:12, label:"Klara 12 multiplikationer + 12 ekvationer" },
   valentine: { stars:10, mult:2,  eq:2,  label:"Klara 2 multiplikationer + 2 ekvationer (12–15 feb)" },
-  easter:    { stars:10, mult:3,  eq:3,  label:"Klara 3 multiplikationer + 3 ekvationer (veckan före påsk)" }
+  easter:    { stars:10, mult:3,  eq:3,  label:"Klara 3 multiplikationer + 3 ekvationer (veckan före påsk)" },
+  spring:    { stars:10, mult:2,  eq:2,  label:"Klara 2 multiplikationer + 2 ekvationer (30 april–15 maj)" }
 };
 
 const PRICES = { animal: 3, decor: 2, blind: 4, unlock: 10 };
@@ -812,6 +833,12 @@ const ANIMALS_POOL = {
     uncommon: ["🦆","🐑"],
     rare:     ["🪺","🦢"],
     epic:     ["🥚🐉"]
+  },
+  spring:{
+    common:   ["🐝","🐞","🐌","🐇","🐦"],
+    uncommon: ["🦋","🦔"],
+    rare:     ["🦢","🦌"],
+    epic:     ["🌸🦄"]
   }
 };
 
@@ -836,7 +863,8 @@ const DECOR_BY_ZONE = {
   fantasy:  ["✨","🏰","🪄","🔮","🌙","🕯️"],
   space:    ["⭐","🌟","✨","☄️","🌙","🛰️","🪐","🌌"],
   valentine:["💗","💖","💝","🍫","🍓","🌹","🌷","💐"],
-  easter:   ["🥚","🐣","🌷","🌼","🧺","🍫","🐇","🪺","🥕"]
+  easter:   ["🥚","🐣","🌷","🌼","🧺","🍫","🐇","🪺","🥕"],
+  spring:   ["🌸","🌼","🌷","🌱","🌿","☀️","🪻","🍃"]
 };
 
 let stars = 0;
@@ -847,11 +875,12 @@ let unlocked = {
   savannah:false, ocean:false, ice:false, fantasy:false,
   space:false,
   valentine:false,
-  easter:false
+  easter:false,
+  spring:false
 };
 
-let animalsByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[], easter:[] };
-let storageByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[], easter:[] };
+let animalsByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[], easter:[], spring:[] };
+let storageByZone = { forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[], easter:[], spring:[] };
 
 let decorGridByZone = {
   forest:Array(36).fill(null),
@@ -861,7 +890,8 @@ let decorGridByZone = {
   fantasy:Array(36).fill(null),
   space:Array(36).fill(null),
   valentine:Array(36).fill(null),
-  easter:Array(36).fill(null)
+  easter:Array(36).fill(null),
+  spring:Array(36).fill(null)
 };
 
 let progress = { mult:0, eq:0 };
@@ -901,6 +931,10 @@ function addAnimalToZone(zoneKey, obj){
   }
 }
 
+function zoneFallback(){
+  return { forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[], easter:[], spring:[] };
+}
+
 function loadState(){
   stars = parseInt(localStorage.getItem(KEY_STARS) || "0", 10);
 
@@ -917,17 +951,11 @@ function loadState(){
 
   const a = localStorage.getItem(KEY_ANIMALS);
   if(a){
-    animalsByZone = normalizeZonesObj(
-      safeParse(a, null),
-      ()=>({ forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[], easter:[] })
-    );
+    animalsByZone = normalizeZonesObj(safeParse(a, null), zoneFallback);
   }
   const st = localStorage.getItem(KEY_STORAGE);
   if(st){
-    storageByZone = normalizeZonesObj(
-      safeParse(st, null),
-      ()=>({ forest:[], savannah:[], ocean:[], ice:[], fantasy:[], space:[], valentine:[], easter:[] })
-    );
+    storageByZone = normalizeZonesObj(safeParse(st, null), zoneFallback);
   }
 
   const d = localStorage.getItem(KEY_DECOR);
@@ -993,6 +1021,10 @@ function canUnlock(zoneKey){
     if(!isEasterWindow()) return false;
   }
 
+  if(zoneKey === "spring" && !unlocked.spring){
+    if(!isSpringWindow()) return false;
+  }
+
   const req = UNLOCK_REQ[zoneKey];
   if(!req) return false;
 
@@ -1025,7 +1057,7 @@ function getDailySafe(){
   d.plan.targets = d.plan.targets || {};
   d.counts = d.counts || {};
 
-  const types = ["eq","mult","frac","percent","prefix","unit","pow10"];
+  const types = ["eq","mult","frac","percent","prefix","unit","pow10","stats"];
   for(const t of types){
     if(typeof d.plan.enabled[t] !== "boolean") d.plan.enabled[t] = false;
     if(typeof d.plan.targets[t] !== "number")  d.plan.targets[t] = 0;
@@ -1073,6 +1105,8 @@ function updateDailyUI(){
     en.unit ? "Enhetsomvandling:" : "Enhetsomvandling: (inte idag)";
   document.getElementById("dailyLabelPow10").textContent =
     en.pow10 ? "× / ÷ med 10, 100, 1000:" : "× / ÷ med 10, 100, 1000: (inte idag)";
+  document.getElementById("dailyLabelStats").textContent =
+    en.stats ? "Statistik:" : "Statistik: (inte idag)";
 
   const eqDone      = Math.min(c.eq, tg.eq);
   const multDone    = Math.min(c.mult, tg.mult);
@@ -1081,6 +1115,7 @@ function updateDailyUI(){
   const prefixDone  = Math.min(c.prefix, tg.prefix);
   const unitDone    = Math.min(c.unit, tg.unit);
   const pow10Done   = Math.min(c.pow10, tg.pow10);
+  const statsDone   = Math.min(c.stats, tg.stats);
 
   document.getElementById("dEq").textContent      = `${eqDone}/${tg.eq}`;
   document.getElementById("dMult").textContent    = `${multDone}/${tg.mult}`;
@@ -1089,6 +1124,7 @@ function updateDailyUI(){
   document.getElementById("dPrefix").textContent  = `${prefixDone}/${tg.prefix}`;
   document.getElementById("dUnit").textContent    = `${unitDone}/${tg.unit}`;
   document.getElementById("dPow10").textContent   = `${pow10Done}/${tg.pow10}`;
+  document.getElementById("dStats").textContent   = `${statsDone}/${tg.stats}`;
 
   const allDone =
     (eqDone      >= tg.eq) &&
@@ -1097,7 +1133,8 @@ function updateDailyUI(){
     (percentDone >= tg.percent) &&
     (prefixDone  >= tg.prefix) &&
     (unitDone    >= tg.unit) &&
-    (pow10Done   >= tg.pow10);
+    (pow10Done   >= tg.pow10) &&
+    (statsDone   >= tg.stats);
 
   const btn = document.getElementById("dailyClaimBtn");
 
@@ -1112,7 +1149,7 @@ function updateDailyUI(){
   } else {
     const totalTarget =
       (tg.eq || 0) + (tg.mult || 0) + (tg.frac || 0) + (tg.percent || 0) +
-      (tg.prefix || 0) + (tg.unit || 0) + (tg.pow10 || 0);
+      (tg.prefix || 0) + (tg.unit || 0) + (tg.pow10 || 0) + (tg.stats || 0);
 
     document.getElementById("dailyStatus").textContent =
       `Gör uppdragen så låser du upp dagens Daily Blind Bag 🎁 (totalt ${totalTarget}/15 max)`;
@@ -1151,7 +1188,8 @@ function openDailyBlindBag(){
     Math.min(c.percent, tg.percent) >= tg.percent &&
     Math.min(c.prefix, tg.prefix)   >= tg.prefix &&
     Math.min(c.unit, tg.unit)       >= tg.unit &&
-    Math.min(c.pow10, tg.pow10)     >= tg.pow10;
+    Math.min(c.pow10, tg.pow10)     >= tg.pow10 &&
+    Math.min(c.stats, tg.stats)     >= tg.stats;
 
   if(!allDone || d.claimed) return;
 
@@ -1340,6 +1378,9 @@ function renderHabitat(zoneKey){
   if(zoneKey === "easter"){
     hab.style.background = "rgba(255,248,220,0.75)";
   }
+  if(zoneKey === "spring"){
+    hab.style.background = "linear-gradient(180deg, rgba(255,255,255,0.72), rgba(220,255,220,0.78))";
+  }
 
   if(!unlocked[zoneKey]){
     const hint = document.createElement("div");
@@ -1491,6 +1532,15 @@ function renderZoo(){
           <p style="margin-top:10px;">
             🐣 Detta är ett <b>limited</b> habitat.<br>
             Du kan bara låsa upp det <b>veckan före påsk</b>.<br>
+            (Har du låst upp det en gång så behåller du det.)
+          </p>
+        `;
+      } else if(z.key === "spring" && !isSpringWindow()){
+        box.innerHTML = `
+          <h4>${z.name} är låst 🔒</h4>
+          <p style="margin-top:10px;">
+            🌸 Detta är ett <b>limited</b> vår-habitat.<br>
+            Du kan bara låsa upp det <b>30 april–15 maj</b>.<br>
             (Har du låst upp det en gång så behåller du det.)
           </p>
         `;
@@ -1691,6 +1741,27 @@ function renderShop(){
       items.appendChild(infoE);
     }
 
+    if(isSpringWindow() && !unlocked.spring){
+      const sepS = document.createElement("div");
+      sepS.className = "muted";
+      sepS.style.marginTop = "10px";
+      sepS.textContent = "Limited event:";
+      items.appendChild(sepS);
+
+      const btnS = document.createElement("button");
+      btnS.className = "shopItemBtn";
+      btnS.textContent = `🌸 Lås upp Vår (${PRICES.unlock}⭐)`;
+      btnS.disabled = !canUnlock("spring");
+      btnS.onclick = () => unlockZone("spring");
+      items.appendChild(btnS);
+
+      const infoS = document.createElement("div");
+      infoS.className = "muted";
+      infoS.style.marginTop = "6px";
+      infoS.textContent = "Kan bara låsas upp 30 april–15 maj. (Har du fått det en gång så behåller du det.)";
+      items.appendChild(infoS);
+    }
+
     return;
   }
 
@@ -1832,6 +1903,7 @@ function renderTodaySummary(){
   const prefix  = t.counts.prefix  || 0;
   const unit    = t.counts.unit    || 0;
   const pow10   = t.counts.pow10   || 0;
+  const stats   = t.counts.stats   || 0;
 
   const tables = t.tables || {};
   const entries = Object.entries(tables)
@@ -1845,6 +1917,7 @@ function renderTodaySummary(){
   html += `<li><b>Prefix – para ihop:</b> ${prefix}</li>`;
   html += `<li><b>Enhetsomvandling:</b> ${unit}</li>`;
   html += `<li><b>× / ÷ med 10, 100, 1000:</b> ${pow10}</li>`;
+  html += `<li><b>Statistik:</b> ${stats}</li>`;
   html += `<li style="margin-top:6px;"><b>Tabeller</b></li>`;
 
   if(entries.length === 0){
