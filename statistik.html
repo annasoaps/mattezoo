@@ -4,288 +4,753 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Mattezoo – Statistik</title>
-
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#eef2f7;
-  margin:0;
-  padding:24px 14px 40px;
-}
-#app{
-  max-width:980px;
-  margin:0 auto;
-  background:#fff;
-  border-radius:14px;
-  box-shadow:0 6px 22px rgba(0,0,0,0.09);
-  border-top:6px solid #4CAF50;
-  padding:18px;
-  position:relative;
-}
+  body{
+    font-family: Arial, sans-serif;
+    background:#eef2f7;
+    margin:0;
+    padding:24px 14px 40px;
+  }
+  #app{
+    max-width:980px;
+    margin:0 auto;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 6px 22px rgba(0,0,0,0.09);
+    border-top:6px solid #4CAF50;
+    padding:18px 18px 22px;
+    position:relative;
+  }
+  h1{margin:0 0 6px; color:#2e7d32;}
+  p{margin:8px 0 12px; line-height:1.35;}
+  .muted{color:#566; font-size:14px;}
 
-h1{color:#2e7d32;}
+  #starPill{
+    position:absolute; top:14px; right:14px;
+    background:#fffde7;
+    border:1px solid #ffe082;
+    border-radius:999px;
+    padding:7px 12px;
+    display:flex; align-items:center; gap:8px;
+    font-weight:800; color:#f57f17;
+  }
+  #starPill span{font-size:18px;}
 
-#starPill{
-  position:absolute; top:14px; right:14px;
-  background:#fffde7;
-  border:1px solid #ffe082;
-  border-radius:999px;
-  padding:7px 12px;
-  font-weight:800;
-  color:#f57f17;
-}
+  .topRow{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+    padding-right:170px;
+  }
+  .backLink{
+    text-decoration:none;
+    color:#1b5e20;
+    background:#f1f8e9;
+    border:2px solid #c5e1a5;
+    padding:8px 10px;
+    border-radius:12px;
+    font-weight:800;
+    display:inline-block;
+  }
+  .backLink:hover{
+    box-shadow:0 4px 12px rgba(0,0,0,0.12);
+    transform: translateY(-1px);
+  }
 
-.pill{
-  background:#f1f8e9;
-  border:2px solid #c5e1a5;
-  border-radius:999px;
-  padding:6px 10px;
-  font-weight:900;
-}
+  .row{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+    justify-content:space-between;
+    margin-top:8px;
+  }
 
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:10px;
-}
-th, td{
-  border:1px solid #ddd;
-  padding:6px;
-  text-align:center;
-}
-input{
-  width:90%;
-  padding:6px;
-  text-align:center;
-}
+  .pill{
+    background:#f1f8e9;
+    border:2px solid #c5e1a5;
+    color:#1b5e20;
+    border-radius:999px;
+    padding:6px 10px;
+    font-weight:900;
+    font-size:14px;
+  }
 
-button{
-  margin-top:10px;
-  padding:10px 14px;
-  border:none;
-  border-radius:10px;
-  background:#4CAF50;
-  color:#fff;
-  font-weight:900;
-  cursor:pointer;
-}
+  select, input, button{
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid #cfcfcf;
+    font-size:16px;
+  }
+  button{
+    border:none;
+    background:#4CAF50;
+    color:#fff;
+    cursor:pointer;
+    font-weight:900;
+  }
+  button:hover{background:#43a047;}
+  button.secondary{background:#546e7a;}
+  button.secondary:hover{background:#455a64;}
+  button:disabled{opacity:.55; cursor:not-allowed;}
 
-.ok{color:#16a34a; font-weight:900;}
-.hint{color:#444; font-weight:900;}
+  #gameBox{
+    margin-top:12px;
+    background:#fafafa;
+    border:1px solid #ddd;
+    border-radius:12px;
+    padding:14px;
+  }
+
+  #dataLine{
+    font-size:24px;
+    font-weight:900;
+    text-align:center;
+    background:#fff;
+    border:1px solid #ddd;
+    border-radius:12px;
+    padding:12px;
+    color:#223;
+  }
+
+  table{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+    margin-top:14px;
+    background:#fff;
+    border-radius:12px;
+    overflow:hidden;
+    border:1px solid #e5e7eb;
+  }
+  th, td{
+    border-bottom:1px solid #e5e7eb;
+    padding:7px 8px;
+    text-align:center;
+  }
+  th{
+    background:#f1f8e9;
+    color:#1b5e20;
+    font-weight:900;
+  }
+  tbody tr:last-child td{
+    border-bottom:1px solid #e5e7eb;
+  }
+  tfoot th, tfoot td{
+    background:#fffde7;
+    font-weight:900;
+    border-bottom:none;
+  }
+  td input, tfoot input{
+    width:95px;
+    max-width:95%;
+    text-align:center;
+    padding:7px 8px;
+    border-radius:999px;
+    font-size:15px;
+  }
+
+  #measureBox{
+    margin-top:14px;
+    display:grid;
+    grid-template-columns:repeat(3, minmax(150px, 1fr));
+    gap:10px;
+  }
+  .measureCard{
+    background:#fff;
+    border:1px solid #ddd;
+    border-radius:12px;
+    padding:10px;
+  }
+  .measureCard label{
+    display:block;
+    font-weight:900;
+    color:#334;
+    margin-bottom:6px;
+    text-align:center;
+  }
+  .measureCard input{
+    width:calc(100% - 26px);
+    text-align:center;
+    border-radius:999px;
+  }
+
+  #hintLine{
+    display:none;
+    text-align:center;
+    margin:10px auto 0;
+    font-weight:900;
+    color:#334;
+    background:#fff3e0;
+    border:1px solid #ffcc80;
+    border-radius:12px;
+    padding:10px 12px;
+    max-width:760px;
+  }
+
+  #feedback{
+    text-align:center;
+    min-height:50px;
+    margin-top:10px;
+    font-weight:900;
+  }
+  .ok{color:#16a34a; font-size:18px;}
+  .bad{color:#dc2626; font-size:18px; line-height:1.35;}
+  .hint{color:#334; font-size:14px; font-weight:900;}
+  .reveal{
+    margin-top:8px;
+    display:inline-block;
+    background:#fff3e0;
+    border:1px solid #ffcc80;
+    color:#6d4c41;
+    border-radius:12px;
+    padding:8px 10px;
+    font-weight:900;
+    font-size:14px;
+    line-height:1.45;
+  }
+
+  .tiny{
+    font-size:12px;
+    color:#556;
+    font-weight:800;
+    margin-top:10px;
+  }
+
+  @media (max-width:680px){
+    #measureBox{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width:520px){
+    #starPill{position:static; margin-bottom:10px;}
+    .topRow{padding-right:0;}
+    td input, tfoot input{width:70px;}
+    #dataLine{font-size:20px;}
+  }
 </style>
 </head>
-
 <body>
+
 <div id="app">
+  <div id="starPill"><span>⭐</span> <span id="starsText">0</span></div>
 
-<div id="starPill">⭐ <span id="starsText">0</span></div>
+  <div class="topRow">
+    <div>
+      <h1>📊 Statistik</h1>
+      <p class="muted" style="margin:6px 0 0;">
+        Fyll i frekvens, relativ frekvens, median, medelvärde och typvärde.
+        <br><b>Lätt</b> = 1⭐, <b>Medel</b> = 2⭐, <b>Svår</b> = 3⭐.
+        <br>Relativ frekvens kan skrivas med eller utan <b>%</b>.
+      </p>
+    </div>
+    <a class="backLink" href="index.html">⬅ Tillbaka till Mattezoo</a>
+  </div>
 
-<h1>📊 Statistik</h1>
+  <div class="row">
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+      <div>
+        <div class="muted" style="font-weight:900; margin-bottom:6px;">Välj nivå</div>
+        <select id="levelSelect">
+          <option value="easy">Lätt (1⭐)</option>
+          <option value="medium">Medel (2⭐)</option>
+          <option value="hard">Svår (3⭐)</option>
+        </select>
+      </div>
 
-<div class="pill">Uppgift: <span id="qIdx">1</span> / 1</div>
+      <button id="startBtn" class="secondary">Starta omgång</button>
+    </div>
 
-<div id="prompt"></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <div class="pill">Uppgift: <span id="qIdx">0</span> / 1</div>
+      <div class="pill">Fel på denna: <span id="wrongThis">0</span> / 3</div>
+    </div>
+  </div>
 
-<table>
-<thead>
-<tr>
-<th>Värde</th>
-<th>Frekvens</th>
-<th>Relativ frekvens (%)</th>
-</tr>
-</thead>
+  <div id="gameBox" style="display:none;">
+    <div class="muted" style="font-weight:900; text-align:center; margin-bottom:6px;">Data:</div>
+    <div id="dataLine">—</div>
 
-<tbody id="tableBody"></tbody>
+    <table>
+      <thead>
+        <tr>
+          <th>Värde</th>
+          <th>Frekvens</th>
+          <th>Relativ frekvens</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+      <tfoot>
+        <tr>
+          <th>Totalt</th>
+          <td><input id="totalFreqInput" type="text" inputmode="numeric" placeholder="n" /></td>
+          <td><input id="totalRelInput" type="text" inputmode="decimal" placeholder="100%" /></td>
+        </tr>
+      </tfoot>
+    </table>
 
-<tfoot>
-<tr>
-<th>Totalt</th>
-<td><input id="totalFreqInput"></td>
-<td><input id="totalRelInput"></td>
-</tr>
-</tfoot>
-</table>
+    <div id="measureBox">
+      <div class="measureCard">
+        <label for="medianInput">Median</label>
+        <input id="medianInput" type="text" inputmode="decimal" placeholder="Median" />
+      </div>
+      <div class="measureCard">
+        <label for="meanInput">Medelvärde</label>
+        <input id="meanInput" type="text" inputmode="decimal" placeholder="Medelvärde" />
+      </div>
+      <div class="measureCard">
+        <label for="modeInput">Typvärde</label>
+        <input id="modeInput" type="text" inputmode="decimal" placeholder="Typvärde" />
+      </div>
+    </div>
 
-<div style="margin-top:12px;">
-Median: <input id="medianInput">
-Medelvärde: <input id="meanInput">
-Typvärde: <input id="modeInput">
+    <div style="text-align:center; margin-top:12px;">
+      <button id="okBtn">Rätta</button>
+      <button id="againBtn" class="secondary" style="display:none;">Kör igen</button>
+    </div>
+
+    <div id="hintLine"></div>
+    <div id="feedback"></div>
+    <div class="tiny" id="footNote"></div>
+  </div>
 </div>
 
-<button onclick="checkAnswer()">Kolla svar</button>
-
-<div id="feedback"></div>
-<div id="footNote"></div>
-
-</div>
+<script src="daily.js"></script>
+<script src="today.js"></script>
 
 <script>
 const KEY_STARS = "mathZooStars";
 
 let stars = 0;
+let level = "easy";
+let tasks = [];
+let taskIndex = 0;
+let wrongThis = 0;
+let roundDone = false;
 let cur = null;
+let hasAwardedThisRound = false;
 
 const starsText = document.getElementById("starsText");
+const levelSelect = document.getElementById("levelSelect");
+const startBtn = document.getElementById("startBtn");
+const gameBox = document.getElementById("gameBox");
+const dataLine = document.getElementById("dataLine");
 const tableBody = document.getElementById("tableBody");
-
 const totalFreqInput = document.getElementById("totalFreqInput");
 const totalRelInput = document.getElementById("totalRelInput");
-
 const medianInput = document.getElementById("medianInput");
 const meanInput = document.getElementById("meanInput");
 const modeInput = document.getElementById("modeInput");
-
+const okBtn = document.getElementById("okBtn");
+const againBtn = document.getElementById("againBtn");
+const hintLine = document.getElementById("hintLine");
 const feedbackDiv = document.getElementById("feedback");
 const footNote = document.getElementById("footNote");
+const qIdxSpan = document.getElementById("qIdx");
+const wrongThisSpan = document.getElementById("wrongThis");
 
 function loadStars(){
-  stars = parseInt(localStorage.getItem(KEY_STARS)||"0");
-  starsText.textContent = stars;
+  stars = parseInt(localStorage.getItem(KEY_STARS) || "0", 10);
+  if(Number.isNaN(stars)) stars = 0;
+  starsText.textContent = String(stars);
 }
 function addStars(n){
   stars += n;
-  localStorage.setItem(KEY_STARS, stars);
-  starsText.textContent = stars;
+  localStorage.setItem(KEY_STARS, JSON.stringify(stars));
+  starsText.textContent = String(stars);
 }
 
-function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function safeDailyIncrement(type, amount=1){
+  try{
+    if(typeof window.mzDailyIncrement === "function"){
+      window.mzDailyIncrement(type, amount);
+    }
+  }catch{}
+}
+function safeTodayIncrement(type, amount=1){
+  try{
+    if(typeof window.mzTodayIncrement === "function"){
+      window.mzTodayIncrement(type, amount);
+    }
+  }catch{}
+}
 
-function genTask(){
-  const arr = [];
-  const n = randInt(6,10);
+function randInt(min, max){
+  return Math.floor(Math.random()*(max-min+1)) + min;
+}
 
-  for(let i=0;i<n;i++){
-    arr.push(randInt(1,6));
+function parseNumber(s){
+  const t = (s || "").trim().replace(/\s+/g,"").replace(",",".").replace("%","");
+  if(t === "") return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatSV(n){
+  if(Math.abs(n) < 1e-12) n = 0;
+  let s = (Math.round(n * 1000) / 1000).toString();
+  if(s.includes(".")){
+    s = s.replace(/0+$/,"").replace(/\.$/,"");
   }
+  return s.replace(".", ",");
+}
+
+function hideHint(){
+  hintLine.style.display = "none";
+  hintLine.textContent = "";
+}
+function showHint(msg){
+  hintLine.textContent = msg;
+  hintLine.style.display = "block";
+}
+
+function awardStarsForLevel(){
+  if(level === "easy") return 1;
+  if(level === "medium") return 2;
+  return 3;
+}
+
+function resetInputStyle(inp){
+  inp.style.borderColor = "#cfcfcf";
+  inp.style.background = "#fff";
+}
+function markBad(inp){
+  inp.style.borderColor = "#dc2626";
+  inp.style.background = "#fff1f2";
+}
+
+/* =========================
+   Statistik
+========================= */
+function makeData(level){
+  let total, minVal, maxVal;
+
+  if(level === "easy"){
+    total = 10;
+    minVal = 1;
+    maxVal = 5;
+  } else if(level === "medium"){
+    total = 12;
+    minVal = 1;
+    maxVal = 6;
+  } else {
+    total = 15;
+    minVal = 1;
+    maxVal = 8;
+  }
+
+  const values = [];
+  for(let i=0;i<total;i++){
+    values.push(randInt(minVal, maxVal));
+  }
+
+  values.sort((a,b)=>a-b);
 
   const counts = {};
-  arr.forEach(x=>counts[x]=(counts[x]||0)+1);
-
-  const unique = Object.keys(counts).map(Number);
-
-  const sorted = [...arr].sort((a,b)=>a-b);
-
-  const median = sorted[Math.floor(n/2)];
-  const mean = arr.reduce((a,b)=>a+b,0)/n;
-
-  let max = 0;
-  let modes = [];
-  for(const k in counts){
-    if(counts[k] > max){
-      max = counts[k];
-      modes = [Number(k)];
-    } else if(counts[k] === max){
-      modes.push(Number(k));
-    }
+  for(const v of values){
+    counts[v] = (counts[v] || 0) + 1;
   }
 
-  return {arr, counts, unique, total:n, median, mean, modes};
+  const unique = Object.keys(counts).map(Number).sort((a,b)=>a-b);
+  const sum = values.reduce((a,b)=>a+b,0);
+  const mean = Math.round((sum / values.length) * 1000) / 1000;
+
+  let median;
+  if(values.length % 2 === 1){
+    median = values[Math.floor(values.length/2)];
+  } else {
+    const mid1 = values[values.length/2 - 1];
+    const mid2 = values[values.length/2];
+    median = (mid1 + mid2) / 2;
+  }
+
+  const maxFreq = Math.max(...Object.values(counts));
+  const modes = unique.filter(v => counts[v] === maxFreq);
+
+  return {
+    values,
+    unique,
+    counts,
+    total: values.length,
+    mean,
+    median,
+    modes
+  };
+}
+
+function genTask(level){
+  return makeData(level);
+}
+
+function buildRound(level){
+  return [genTask(level)];
 }
 
 function renderTask(){
-  cur = genTask();
+  qIdxSpan.textContent = "1";
+  wrongThisSpan.textContent = String(wrongThis);
 
-  document.getElementById("prompt").innerHTML =
-    "Data: <b>" + cur.arr.join(", ") + "</b>";
+  dataLine.textContent = cur.values.join(", ");
 
   tableBody.innerHTML = "";
+  for(const v of cur.unique){
+    const tr = document.createElement("tr");
 
-  cur.unique.forEach(v=>{
-    const row = document.createElement("tr");
+    const tdVal = document.createElement("td");
+    tdVal.textContent = String(v);
 
-    row.innerHTML = `
-      <td>${v}</td>
-      <td><input data-kind="freq" data-value="${v}"></td>
-      <td><input data-kind="rel" data-value="${v}"></td>
-    `;
-    tableBody.appendChild(row);
-  });
+    const tdFreq = document.createElement("td");
+    const freqInput = document.createElement("input");
+    freqInput.type = "text";
+    freqInput.inputMode = "numeric";
+    freqInput.dataset.kind = "freq";
+    freqInput.dataset.value = String(v);
+    freqInput.placeholder = "?";
+    tdFreq.appendChild(freqInput);
 
-  totalFreqInput.value="";
-  totalRelInput.value="";
-  medianInput.value="";
-  meanInput.value="";
-  modeInput.value="";
+    const tdRel = document.createElement("td");
+    const relInput = document.createElement("input");
+    relInput.type = "text";
+    relInput.inputMode = "decimal";
+    relInput.dataset.kind = "rel";
+    relInput.dataset.value = String(v);
+    relInput.placeholder = "%";
+    tdRel.appendChild(relInput);
+
+    tr.appendChild(tdVal);
+    tr.appendChild(tdFreq);
+    tr.appendChild(tdRel);
+    tableBody.appendChild(tr);
+  }
+
+  totalFreqInput.value = "";
+  totalRelInput.value = "";
+  medianInput.value = "";
+  meanInput.value = "";
+  modeInput.value = "";
+
+  [totalFreqInput,totalRelInput,medianInput,meanInput,modeInput].forEach(resetInputStyle);
+
+  feedbackDiv.textContent = "";
+  feedbackDiv.className = "";
+  footNote.textContent = "";
+  hideHint();
+
+  const first = tableBody.querySelector("input");
+  if(first) first.focus();
 }
 
-function parseNumber(x){
-  if(!x) return null;
-  return Number(x.replace(",","."));
-}
-
-function checkAnswer(){
-
+function checkTable(){
   let ok = true;
-  let issues = [];
+  const issues = [];
 
   const inputs = tableBody.querySelectorAll("input");
 
-  inputs.forEach(inp=>{
-    const val = Number(inp.dataset.value);
+  inputs.forEach(inp => {
+    const v = Number(inp.dataset.value);
     const kind = inp.dataset.kind;
     const user = parseNumber(inp.value);
 
-    if(user === null){ ok=false; return; }
+    resetInputStyle(inp);
 
-    if(kind==="freq"){
-      if(user !== cur.counts[val]){
-        ok=false;
-        issues.push("frekvens");
+    if(user === null){
+      ok = false;
+      markBad(inp);
+      issues.push("någon ruta i tabellen är tom");
+      return;
+    }
+
+    if(kind === "freq"){
+      const correct = cur.counts[v];
+      if(Math.abs(user - correct) > 1e-9){
+        ok = false;
+        markBad(inp);
+        issues.push(`frekvensen för ${v}`);
       }
     }
 
-    if(kind==="rel"){
-      const correct = cur.counts[val]/cur.total*100;
-      if(Math.abs(user-correct)>0.1){
-        ok=false;
-        issues.push("relativ frekvens");
+    if(kind === "rel"){
+      const correctPct = (cur.counts[v] / cur.total) * 100;
+      if(Math.abs(user - correctPct) > 0.05){
+        ok = false;
+        markBad(inp);
+        issues.push(`relativ frekvens för ${v}`);
       }
     }
   });
 
-  if(parseNumber(totalFreqInput.value) !== cur.total){
-    ok=false;
-    issues.push("totalt n");
+  resetInputStyle(totalFreqInput);
+  resetInputStyle(totalRelInput);
+
+  const totalFreqUser = parseNumber(totalFreqInput.value);
+  const totalRelUser = parseNumber(totalRelInput.value);
+
+  if(totalFreqUser === null || Math.abs(totalFreqUser - cur.total) > 1e-9){
+    ok = false;
+    markBad(totalFreqInput);
+    issues.push("totala frekvensen, n");
   }
 
-  if(Math.abs(parseNumber(totalRelInput.value)-100)>0.1){
-    ok=false;
-    issues.push("100%");
+  if(totalRelUser === null || Math.abs(totalRelUser - 100) > 0.05){
+    ok = false;
+    markBad(totalRelInput);
+    issues.push("summan av relativ frekvens");
   }
 
-  if(parseNumber(medianInput.value) !== cur.median){
-    ok=false;
-    issues.push("median");
+  return { ok, issues };
+}
+
+function checkMeasures(){
+  let ok = true;
+  const issues = [];
+
+  const medianUser = parseNumber(medianInput.value);
+  const meanUser = parseNumber(meanInput.value);
+  const modeUserRaw = (modeInput.value || "").trim();
+
+  [medianInput, meanInput, modeInput].forEach(resetInputStyle);
+
+  if(medianUser === null || Math.abs(medianUser - cur.median) > 1e-9){
+    ok = false;
+    markBad(medianInput);
+    issues.push("medianen");
   }
 
-  if(Math.abs(parseNumber(meanInput.value)-cur.mean)>0.1){
-    ok=false;
-    issues.push("medelvärde");
+  if(meanUser === null || Math.abs(meanUser - cur.mean) > 0.05){
+    ok = false;
+    markBad(meanInput);
+    issues.push("medelvärdet");
   }
 
-  const modesUser = modeInput.value.split(",").map(x=>parseNumber(x.trim())).sort();
-  const modesCorrect = cur.modes.sort();
+  const modeNums = modeUserRaw
+    .split(/[,; ]+/)
+    .map(x => parseNumber(x))
+    .filter(x => x !== null)
+    .sort((a,b)=>a-b);
 
-  if(JSON.stringify(modesUser) !== JSON.stringify(modesCorrect)){
-    ok=false;
-    issues.push("typvärde");
+  const correctModes = cur.modes.slice().sort((a,b)=>a-b);
+
+  const sameLength = modeNums.length === correctModes.length;
+  const sameValues = sameLength && modeNums.every((x,i)=>Math.abs(x - correctModes[i]) < 1e-9);
+
+  if(!sameValues){
+    ok = false;
+    markBad(modeInput);
+    issues.push("typvärdet");
   }
 
-  if(ok){
-    feedbackDiv.innerHTML = "✅ Helt rätt!";
-    feedbackDiv.className="ok";
-    addStars(2);
+  return { ok, issues };
+}
+
+function checkAnswer(){
+  if(roundDone) return;
+
+  const tableResult = checkTable();
+  const measureResult = checkMeasures();
+
+  if(tableResult.ok && measureResult.ok){
+    finishRound();
+    return;
+  }
+
+  wrongThis += 1;
+  wrongThisSpan.textContent = String(wrongThis);
+
+  const allIssues = [...tableResult.issues, ...measureResult.issues];
+  const uniqueIssues = [...new Set(allIssues)];
+
+  feedbackDiv.className = "bad";
+  feedbackDiv.innerHTML =
+    `✖ Något behöver rättas.<br>` +
+    `<span style="font-size:14px;">Kolla särskilt: ${uniqueIssues.join(", ")}.</span>`;
+
+  if(wrongThis === 1){
+    showHint("Tips: Frekvens betyder hur många gånger ett värde finns. Totala frekvensen ska bli lika många som antal tal i dataraden.");
+  } else if(wrongThis === 2){
+    showHint("Tips: Relativ frekvens = frekvens ÷ antal tal. Alla relativa frekvenser tillsammans ska bli 100%.");
   } else {
-    feedbackDiv.innerHTML = "✖ Kolla: " + [...new Set(issues)].join(", ");
-    feedbackDiv.className="hint";
+    showReveal();
+    hideHint();
+    feedbackDiv.className = "hint";
+    feedbackDiv.textContent = "Nu ser du rätt svar. Fyll i rätt svar för att gå vidare 🙂";
   }
 }
 
+function showReveal(){
+  let html = `<span class="reveal">`;
+  html += `<b>Rätt tabell:</b><br>`;
+
+  for(const v of cur.unique){
+    const f = cur.counts[v];
+    const rel = (f / cur.total) * 100;
+    html += `${v}: frekvens ${f}, relativ frekvens ${formatSV(rel)}%<br>`;
+  }
+
+  html += `<br>`;
+  html += `Totalt n: <b>${cur.total}</b><br>`;
+  html += `Relativ frekvens totalt: <b>100%</b><br>`;
+  html += `<br>`;
+  html += `Median: <b>${formatSV(cur.median)}</b><br>`;
+  html += `Medelvärde: <b>${formatSV(cur.mean)}</b><br>`;
+  html += `Typvärde: <b>${cur.modes.join(", ")}</b>`;
+  html += `</span>`;
+
+  footNote.innerHTML = html;
+}
+
+function startRound(){
+  level = levelSelect.value;
+  tasks = buildRound(level);
+  taskIndex = 0;
+  wrongThis = 0;
+  roundDone = false;
+  hasAwardedThisRound = false;
+  cur = tasks[0];
+
+  gameBox.style.display = "block";
+  okBtn.disabled = false;
+  againBtn.style.display = "none";
+
+  renderTask();
+}
+
+function finishRound(){
+  roundDone = true;
+  const earned = awardStarsForLevel();
+
+  if(!hasAwardedThisRound){
+    addStars(earned);
+    safeDailyIncrement("stats", 1);
+    safeTodayIncrement("stats", 1);
+    hasAwardedThisRound = true;
+  }
+
+  feedbackDiv.innerHTML = `✅ Helt rätt! Du fick ${earned} ⭐.`;
+  feedbackDiv.className = "ok";
+  footNote.textContent = "Kör igen för att träna mer, eller byt nivå.";
+  hideHint();
+
+  okBtn.disabled = true;
+  againBtn.style.display = "inline-block";
+}
+
+startBtn.addEventListener("click", startRound);
+okBtn.addEventListener("click", checkAnswer);
+againBtn.addEventListener("click", startRound);
+
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "Enter" && gameBox.style.display !== "none" && !roundDone){
+    checkAnswer();
+  }
+});
+
 document.addEventListener("DOMContentLoaded", ()=>{
   loadStars();
-  renderTask();
 });
 </script>
-
 </body>
 </html>
