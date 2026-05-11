@@ -1,76 +1,34 @@
-/* =========================================================
-   Mattezoo - Daily Quests (daily.js)
-   Stöd för:
-   eq, mult, frac, percent, prefix, unit, pow10
-
-   Regler:
-   - Varje dag skapas ett nytt uppdrag
-   - Några spel väljs ut slumpmässigt
-   - Totalt antal uppgifter över alla spel = max 15
-   - Daily Blind Bag kan öppnas när allt är klart
-========================================================= */
-
-(function () {
+(function(){
   const KEY_DAILY = "mathZooDaily";
-  const TYPES = ["eq", "mult", "frac", "percent", "prefix", "unit", "pow10", "stats"];
-  const MAX_TOTAL = 15;
 
-  function todayKey() {
+  function todayKey(){
     return new Date().toLocaleDateString("sv-SE");
   }
 
-  function seedFromString(s) {
-    let h = 2166136261;
-    for (let i = 0; i < s.length; i++) {
-      h ^= s.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    return h >>> 0;
-  }
-
-  function mulberry32(seed) {
-    return function () {
-      seed |= 0;
-      seed = seed + 0x6D2B79F5 | 0;
-      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
-      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-      return ((t ^ t >>> 14) >>> 0) / 4294967296;
-    };
-  }
-
-  function shuffle(arr, rnd) {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(rnd() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-
-  function emptyDaily(dateStr) {
+  function makeDaily(){
     return {
-      date: dateStr,
+      date: todayKey(),
       claimed: false,
       plan: {
         enabled: {
-          eq: false,
-          mult: false,
-          frac: false,
-          percent: false,
-          prefix: false,
-          unit: false,
-          pow10: false,
-           stats: false
+          eq: true,
+          mult: true,
+          frac: true,
+          percent: true,
+          prefix: true,
+          unit: true,
+          pow10: true,
+          stats: true
         },
         targets: {
-          eq: 0,
-          mult: 0,
-          frac: 0,
-          percent: 0,
-          prefix: 0,
-          unit: 0,
-          pow10: 0,
-           stats: 0
+          eq: 2,
+          mult: 3,
+          frac: 2,
+          percent: 2,
+          prefix: 2,
+          unit: 2,
+          pow10: 1,
+          stats: 1
         }
       },
       counts: {
@@ -81,97 +39,40 @@
         prefix: 0,
         unit: 0,
         pow10: 0,
-         stats: 0
+        stats: 0
       }
     };
   }
 
-  function makePlanForToday(dateStr) {
-    const rnd = mulberry32(seedFromString("daily|" + dateStr));
-    const d = emptyDaily(dateStr);
+  window.mzLoadDaily = function(){
+    let d = null;
 
-    const numGames = 3 + Math.floor(rnd() * 3);
-    const picked = shuffle(TYPES, rnd).slice(0, numGames);
-
-    let remaining = MAX_TOTAL;
-
-    picked.forEach((type, idx) => {
-      d.plan.enabled[type] = true;
-
-      const leftGames = picked.length - idx;
-      t minHere = 2;
-      t maxHere = Math.min(5, remaining - (leftGames - 1) * 2);
-
-      let target;
-      if (leftGames === 1) {
-        target = remaining;
-      } else {
-        target = minHere + Math.floor(rnd() * (maxHere - minHere + 1));
-      }
-
-      d.plan.targets[type] = target;
-      remaining -= target;
-    });
-
-    return d;
-  }
-
-  function normalizeDaily(d) {
-    t dateStr = todayKey();
-    if (!d || typeof d !== "object") return makePlanForToday(dateStr);
-
-    if (d.date !== dateStr) return makePlanForToday(dateStr);
-
-    d.plan = d.plan || { enabled: {}, targets: {} };
-    d.plan.enabled = d.plan.enabled || {};
-    d.plan.targets = d.plan.targets || {};
-    d.counts = d.counts || {};
-
-    for (t t of TYPES) {
-      if (typeof d.plan.enabled[t] !== "boolean") d.plan.enabled[t] = false;
-      if (typeof d.plan.targets[t] !== "number") d.plan.targets[t] = 0;
-      if (typeof d.counts[t] !== "number") d.counts[t] = 0;
-    }
-
-    if (typeof d.claimed !== "boolean") d.claimed = false;
-    if (typeof d.date !== "string") d.date = dateStr;
-
-    return d;
-  }
-
-  function loadDaily() {
-    t raw = localStorage.getItem(KEY_DAILY);
-    let parsed = null;
     try {
-      parsed = raw ? JSON.parse(raw) : null;
+      d = JSON.parse(localStorage.getItem(KEY_DAILY) || "null");
     } catch {
-      parsed = null;
+      d = null;
     }
 
-    t d = normalizeDaily(parsed);
-    localStorage.setItem(KEY_DAILY, JSON.stringify(d));
+    if(!d || d.date !== todayKey()){
+      d = makeDaily();
+      localStorage.setItem(KEY_DAILY, JSON.stringify(d));
+    }
+
     return d;
-  }
+  };
 
-  function saveDaily(d) {
-    localStorage.setItem(KEY_DAILY, JSON.stringify(normalizeDaily(d)));
-  }
+  window.mzSaveDaily = function(d){
+    localStorage.setItem(KEY_DAILY, JSON.stringify(d));
+  };
 
-  function dailyIncrement(type, amount = 1) {
-    if (!TYPES.includes(type)) return;
+  window.mzDailyIncrement = function(type, amount){
+    const d = window.mzLoadDaily();
+    amount = amount || 1;
 
-    t d = loadDaily();
-    if (!d.plan.enabled[type]) return;
+    if(!d.counts) d.counts = {};
+    if(typeof d.counts[type] !== "number") d.counts[type] = 0;
 
-    d.counts[type] = (d.counts[type] || 0) + amount;
-
-    t max = d.plan.targets[type] || 0;
-    if (d.counts[type] > max) d.counts[type] = max;
-
-    saveDaily(d);
-  }
-
-  window.mzLoadDaily = loadDaily;
-  window.mzSaveDaily = saveDaily;
-  window.mzDailyIncrement = dailyIncrement;
+    d.counts[type] += amount;
+    window.mzSaveDaily(d);
+  };
 })();
