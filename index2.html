@@ -207,6 +207,32 @@
     white-space:nowrap;
   }
 
+  .zThing{ cursor:pointer; }
+  .zThing:hover{ filter: drop-shadow(0 3px 4px rgba(0,0,0,0.22)); }
+
+  .habitat.placing{
+    cursor:crosshair;
+    outline:4px solid rgba(76,175,80,0.38);
+    outline-offset:-4px;
+  }
+  .placementHint{
+    position:absolute;
+    left:50%;
+    bottom:8px;
+    transform:translateX(-50%);
+    z-index:20;
+    pointer-events:none;
+    background:rgba(255,255,255,0.94);
+    border:2px solid #81c784;
+    color:#1b5e20;
+    border-radius:999px;
+    padding:7px 11px;
+    font-size:12px;
+    font-weight:900;
+    box-shadow:0 3px 10px rgba(0,0,0,0.10);
+    white-space:nowrap;
+  }
+
   /* Animal movement */
   .zThing.zAnimal{
     will-change: transform, left, top;
@@ -484,6 +510,11 @@
           <p>Lös ekvationer steg för steg.</p>
         </a>
 
+        <a class="gameBtn" href="mgn.html">
+          <h3>½ Minsta gemensamma nämnaren</h3>
+          <p>Hitta MGN till två bråk med stegvisa ledtrådar.</p>
+        </a>
+
         <a class="gameBtn" href="brak_decimal.html">
           <h3>➗ Bråk &lt;-&gt; Decimal</h3>
           <p>Omvandla bråk till decimaltal och samla ⭐.</p>
@@ -599,8 +630,9 @@
   <div class="card" style="margin-top:14px;">
     <h2 style="margin:0 0 6px;">🐾 Ditt zoo</h2>
     <div class="muted">
-      Här syns djur och dekorationer utspridda i varje habitat.
-      <br><b>Ny grej:</b> Varje zon har en <b>Hage</b> (max) + ett <b>Lager</b> för extra djur.
+      Bygg habitatet själv: när du köper ett djur eller en dekoration klickar du var den ska placeras.
+      <br>Klicka på ett djur eller en dekoration senare om du vill flytta den. Djur rör sig lite runt sin valda hemplats.
+      <br>Varje zon har en <b>Hage</b> (max) + ett <b>Lager</b> för extra djur.
     </div>
     <div id="zooGrid"></div>
   </div>
@@ -1267,24 +1299,27 @@ const ZOO_ANIM = {
   rafId: null,
   lastT: 0,
   maxAnimalsPerHabitat: 28,
-  speedPxPerSec: 10,
-  turnJitter: 0.02
+  speedPxPerSec: 8,
+  turnJitter: 0.7,
+  roamRadiusPx: 34
 };
 
+let pendingPlacement = null;
+
 function zClamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+function pctClamp(n){ return Math.max(5, Math.min(95, n)); }
 
 function zooStartAnimLoop(){
-  if(ZOO_ANIM.running) return;
+  if(ZOO_ANIM.running || pendingPlacement) return;
   ZOO_ANIM.running = true;
   ZOO_ANIM.lastT = performance.now();
 
   const tick = (tNow)=>{
+    if(!ZOO_ANIM.running) return;
     const dt = Math.min(0.05, (tNow - ZOO_ANIM.lastT) / 1000);
     ZOO_ANIM.lastT = tNow;
 
-    const habitats = document.querySelectorAll(".habitat");
-    habitats.forEach(hab => animateHabitatStep(hab, dt));
-
+    document.querySelectorAll(".habitat").forEach(hab => animateHabitatStep(hab, dt));
     ZOO_ANIM.rafId = requestAnimationFrame(tick);
   };
 
@@ -1303,29 +1338,34 @@ document.addEventListener("visibilitychange", ()=>{
 });
 
 function animateHabitatStep(hab, dt){
+  if(pendingPlacement) return;
+
   const animals = hab.querySelectorAll(".zThing.zAnimal");
   if(!animals.length) return;
 
   const rect = hab.getBoundingClientRect();
   const w = rect.width;
   const h = rect.height;
+  if(w <= 0 || h <= 0) return;
 
   const pad = 18;
-  const minX = pad;
-  const maxX = w - pad;
-  const minY = pad;
-  const maxY = h - pad;
 
   animals.forEach(el => {
-    if(!el.dataset.ax){
-      const lp = parseFloat(el.style.left || "50");
-      const tp = parseFloat(el.style.top  || "50");
-      const x0 = (lp/100) * w;
-      const y0 = (tp/100) * h;
+    const homePctX = parseFloat(el.dataset.homeX || el.style.left || "50");
+    const homePctY = parseFloat(el.dataset.homeY || el.style.top || "50");
+    const homeX = (homePctX / 100) * w;
+    const homeY = (homePctY / 100) * h;
 
+    const radius = ZOO_ANIM.roamRadiusPx;
+    const minX = Math.max(pad, homeX - radius);
+    const maxX = Math.min(w - pad, homeX + radius);
+    const minY = Math.max(pad, homeY - radius);
+    const maxY = Math.min(h - pad, homeY + radius);
+
+    if(!el.dataset.ax){
       const ang = Math.random() * Math.PI * 2;
-      el.dataset.ax = String(zClamp(x0, minX, maxX));
-      el.dataset.ay = String(zClamp(y0, minY, maxY));
+      el.dataset.ax = String(zClamp(homeX, minX, maxX));
+      el.dataset.ay = String(zClamp(homeY, minY, maxY));
       el.dataset.vx = String(Math.cos(ang));
       el.dataset.vy = String(Math.sin(ang));
 
@@ -1338,16 +1378,15 @@ function animateHabitatStep(hab, dt){
     let vx = parseFloat(el.dataset.vx);
     let vy = parseFloat(el.dataset.vy);
 
-    const jitter = ZOO_ANIM.turnJitter;
-    vx += (Math.random()*2 - 1) * jitter * dt;
-    vy += (Math.random()*2 - 1) * jitter * dt;
+    vx += (Math.random()*2 - 1) * ZOO_ANIM.turnJitter * dt;
+    vy += (Math.random()*2 - 1) * ZOO_ANIM.turnJitter * dt;
 
     const len = Math.hypot(vx, vy) || 1;
-    vx /= len; vy /= len;
+    vx /= len;
+    vy /= len;
 
-    const sp = ZOO_ANIM.speedPxPerSec;
-    x += vx * sp * dt;
-    y += vy * sp * dt;
+    x += vx * ZOO_ANIM.speedPxPerSec * dt;
+    y += vy * ZOO_ANIM.speedPxPerSec * dt;
 
     if(x <= minX){ x = minX; vx = Math.abs(vx); }
     if(x >= maxX){ x = maxX; vx = -Math.abs(vx); }
@@ -1364,9 +1403,107 @@ function animateHabitatStep(hab, dt){
   });
 }
 
+function beginPlacement(data){
+  if(pendingPlacement){
+    setToast("Placera först det du redan håller på med.", false);
+    return false;
+  }
+
+  pendingPlacement = data;
+  zooStopAnimLoop();
+  renderZoo();
+  renderShop();
+
+  const action = data.kind.startsWith("move") ? "Flytta" : "Placera";
+  setToast(`${action} ${data.emoji}: klicka på önskad plats i ${zoneName(data.zoneKey)}. (Esc avbryter)`);
+
+  window.setTimeout(()=>{
+    const hab = document.querySelector(`.habitat[data-zone="${data.zoneKey}"]`);
+    if(hab) hab.scrollIntoView({behavior:"smooth", block:"center"});
+  }, 30);
+
+  return true;
+}
+
+function cancelPlacement(){
+  if(!pendingPlacement) return;
+
+  if(pendingPlacement.refund){
+    stars += pendingPlacement.refund;
+    updateStarsUI();
+  }
+
+  const emoji = pendingPlacement.emoji;
+  pendingPlacement = null;
+  saveState();
+  renderZoo();
+  renderShop();
+  setToast(`Placeringen av ${emoji} avbröts.`);
+  zooStartAnimLoop();
+}
+
+function completePlacement(zoneKey, xPct, yPct){
+  if(!pendingPlacement || pendingPlacement.zoneKey !== zoneKey) return;
+
+  const p = pendingPlacement;
+  const x = pctClamp(xPct);
+  const y = pctClamp(yPct);
+
+  if(p.kind === "new-animal"){
+    addAnimalToZone(zoneKey, {
+      emoji:p.emoji,
+      rarity:p.rarity || "common",
+      x, y
+    });
+  } else if(p.kind === "new-decor"){
+    const grid = decorGridByZone[zoneKey] || Array(36).fill(null);
+    const slot = grid.findIndex(v => v === null);
+    if(slot === -1){
+      stars += p.refund || 0;
+      pendingPlacement = null;
+      updateStarsUI();
+      setToast("Det är fullt av dekorationer här.", false);
+      renderZoo();
+      renderShop();
+      zooStartAnimLoop();
+      return;
+    }
+    grid[slot] = {emoji:p.emoji, x, y};
+    decorGridByZone[zoneKey] = grid;
+  } else if(p.kind === "move-animal"){
+    const obj = animalsByZone[zoneKey]?.[p.index];
+    if(obj){
+      obj.x = x;
+      obj.y = y;
+    }
+  } else if(p.kind === "move-decor"){
+    const grid = decorGridByZone[zoneKey] || [];
+    const entry = grid[p.index];
+    if(entry !== null && entry !== undefined){
+      grid[p.index] = {
+        ...(typeof entry === "object" ? entry : {emoji:entry}),
+        x, y
+      };
+    }
+  }
+
+  pendingPlacement = null;
+  saveState();
+  updateStarsUI();
+  renderZoo();
+  renderShop();
+  setToast(`${p.emoji} placerad!`);
+  zooStartAnimLoop();
+}
+
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "Escape" && pendingPlacement) cancelPlacement();
+});
+
 function renderHabitat(zoneKey){
   const hab = document.createElement("div");
   hab.className = "habitat";
+  hab.dataset.zone = zoneKey;
 
   if(zoneKey === "space"){
     hab.style.background = "rgba(0,0,0,0.35)";
@@ -1391,11 +1528,39 @@ function renderHabitat(zoneKey){
     return hab;
   }
 
+  if(pendingPlacement && pendingPlacement.zoneKey === zoneKey){
+    hab.classList.add("placing");
+
+    const hint = document.createElement("div");
+    hint.className = "placementHint";
+    hint.textContent = `Klicka här för att placera ${pendingPlacement.emoji}`;
+    hab.appendChild(hint);
+
+    hab.addEventListener("click", (e)=>{
+      if(e.target.closest(".zThing")) return;
+      const rect = hab.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      completePlacement(zoneKey, x, y);
+    });
+  }
+
   const rnd = zonedRng(zoneKey);
 
-  const animals = (animalsByZone[zoneKey] || []).map(obj => ({ type:"animal", ...obj }));
+  const animals = (animalsByZone[zoneKey] || []).map((obj, index) => ({
+    type:"animal",
+    index,
+    ...obj
+  }));
+
   const decorArr = decorGridByZone[zoneKey] || Array(36).fill(null);
-  const decor = decorArr.filter(x => x !== null).map(em => ({ type:"decor", emoji: em }));
+  const decor = decorArr
+    .map((entry, index)=>{
+      if(entry === null) return null;
+      const obj = typeof entry === "object" ? entry : {emoji:entry};
+      return {type:"decor", index, ...obj};
+    })
+    .filter(Boolean);
 
   const things = [...decor, ...animals];
 
@@ -1403,12 +1568,14 @@ function renderHabitat(zoneKey){
     const empty = document.createElement("div");
     empty.className = "muted";
     empty.style.padding = "10px";
-    empty.textContent = "Tomt här än så länge. Köp djur eller dekorationer i affären!";
+    empty.textContent = pendingPlacement && pendingPlacement.zoneKey === zoneKey
+      ? "Klicka på en plats i habitatet."
+      : "Tomt här än så länge. Köp djur eller dekorationer i affären!";
     hab.appendChild(empty);
     return hab;
   }
 
-  const maxRender = 28;
+  const maxRender = 60;
   const toRender = things.slice(0, maxRender);
 
   toRender.forEach((t) => {
@@ -1420,26 +1587,50 @@ function renderHabitat(zoneKey){
     span.textContent = t.emoji;
     el.appendChild(span);
 
-    const x = 10 + rnd()*80;
-    const y = 12 + rnd()*74;
+    // Gamla objekt utan position får en stabil reservplats.
+    const x = Number.isFinite(Number(t.x)) ? Number(t.x) : 10 + rnd()*80;
+    const y = Number.isFinite(Number(t.y)) ? Number(t.y) : 12 + rnd()*74;
 
     el.style.left = x + "%";
     el.style.top  = y + "%";
-
-    const size = 22 + Math.floor(rnd()*12);
-    el.style.fontSize = size + "px";
+    el.style.fontSize = (t.type === "animal" ? 30 : 28) + "px";
 
     if(t.type === "animal"){
       el.classList.add("zAnimal");
+      el.dataset.homeX = String(x);
+      el.dataset.homeY = String(y);
       el.style.padding = "2px 6px";
       el.style.borderRadius = "12px";
       el.classList.add(rarityClass(t.rarity));
-      el.title = (t.rarity || "common").toUpperCase();
+      el.title = `${(t.rarity || "common").toUpperCase()} · klicka för att flytta`;
       el.style.background = "rgba(255,255,255,0.55)";
       el.style.border = "1px solid rgba(255,255,255,0.85)";
     } else {
       el.style.opacity = "0.95";
+      el.title = "Klicka för att flytta";
     }
+
+    el.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      if(pendingPlacement) return;
+
+      if(t.type === "animal"){
+        beginPlacement({
+          kind:"move-animal",
+          zoneKey,
+          emoji:t.emoji,
+          rarity:t.rarity,
+          index:t.index
+        });
+      } else {
+        beginPlacement({
+          kind:"move-decor",
+          zoneKey,
+          emoji:t.emoji,
+          index:t.index
+        });
+      }
+    });
 
     hab.appendChild(el);
   });
@@ -1499,6 +1690,7 @@ function renderZoo(){
 
     const sub = document.createElement("div");
     sub.className = "zoneSub";
+    sub.textContent = unlocked[z.key] ? "Klicka på en sak för att flytta den." : "";
     body.appendChild(sub);
     body.appendChild(renderHabitat(z.key));
 
@@ -1640,6 +1832,8 @@ function renderStorageModal(){
         return;
       }
       const moved = store.splice(idx, 1)[0];
+      if(!Number.isFinite(Number(moved.x))) moved.x = 50;
+      if(!Number.isFinite(Number(moved.y))) moved.y = 50;
       pen.push(moved);
       saveState();
       renderStorageModal();
@@ -1661,7 +1855,7 @@ function renderShop(){
   if(mode === "animals"){
     note.innerHTML = `Pris: <b>${PRICES.animal} ⭐</b> per djur. (Om hagen är full hamnar djuret i lager.)`;
   } else if(mode === "decor"){
-    note.innerHTML = `Pris: <b>${PRICES.decor} ⭐</b> per dekoration (slumpas in i habitatet).`;
+    note.innerHTML = `Pris: <b>${PRICES.decor} ⭐</b> per dekoration. Du väljer själv var den ska stå.`;
   } else if(mode === "blind"){
     note.innerHTML = `Pris: <b>${PRICES.blind} ⭐</b> per blind bag 🎁 (raritet slumpas).`;
   } else {
@@ -1798,7 +1992,7 @@ function renderShop(){
     const hint = document.createElement("div");
     hint.className = "muted";
     hint.style.marginTop = "8px";
-    hint.textContent = "Dekorationer placeras automatiskt (slumpas ut i habitatet).";
+    hint.textContent = "Efter köpet klickar du på den plats i habitatet där dekorationen ska stå.";
     items.appendChild(hint);
     return;
   }
@@ -1819,69 +2013,94 @@ function renderShop(){
   }
 }
 
-function placeDecorInGrid(zoneKey, emoji){
+function hasFreeDecorSlot(zoneKey){
   ensureZoneArrays(zoneKey);
   const grid = decorGridByZone[zoneKey] || Array(36).fill(null);
-
-  const empty = [];
-  for(let i=0;i<36;i++){
-    if(grid[i] === null) empty.push(i);
-  }
-  if(empty.length === 0) return false;
-
-  const pick = empty[Math.floor(Math.random()*empty.length)];
-  grid[pick] = emoji;
-  decorGridByZone[zoneKey] = grid;
-  return true;
+  return grid.some(v => v === null);
 }
 
 function buyAnimal(zoneKey, emoji, rarity){
+  if(pendingPlacement){
+    setToast("Placera först det du redan håller på med.", false);
+    return;
+  }
   if(stars < PRICES.animal) return;
+
   stars -= PRICES.animal;
-
-  const placed = addAnimalToZone(zoneKey, { emoji, rarity: rarity || "common" });
-
-  saveState();
   updateStarsUI();
-  renderZoo();
-  renderShop();
 
-  const where = placed.placed === "storage" ? " (hamnade i LAGER eftersom hagen är full)" : "";
-  setToast(`Du köpte ${emoji} till ${zoneName(zoneKey)}!${where}`);
+  if((animalsByZone[zoneKey] || []).length >= PEN_MAX){
+    storageByZone[zoneKey].push({emoji, rarity:rarity || "common"});
+    saveState();
+    renderZoo();
+    renderShop();
+    setToast(`Du köpte ${emoji}. Hagen är full, så djuret hamnade i lagret.`);
+    return;
+  }
+
+  beginPlacement({
+    kind:"new-animal",
+    zoneKey,
+    emoji,
+    rarity:rarity || "common",
+    refund:PRICES.animal
+  });
 }
 
 function buyDecor(zoneKey, emoji){
+  if(pendingPlacement){
+    setToast("Placera först det du redan håller på med.", false);
+    return;
+  }
   if(stars < PRICES.decor) return;
-  const ok = placeDecorInGrid(zoneKey, emoji);
-  if(!ok){
+  if(!hasFreeDecorSlot(zoneKey)){
     setToast("Det är fullt av dekorationer här! Välj ett annat område.", false);
     return;
   }
+
   stars -= PRICES.decor;
-  saveState();
   updateStarsUI();
-  renderZoo();
-  renderShop();
-  setToast(`Dekoration ${emoji} placerades i ${zoneName(zoneKey)}!`);
+
+  beginPlacement({
+    kind:"new-decor",
+    zoneKey,
+    emoji,
+    refund:PRICES.decor
+  });
 }
 
 function buyBlindBag(zoneKey){
+  if(pendingPlacement){
+    setToast("Placera först det du redan håller på med.", false);
+    return;
+  }
   if(stars < PRICES.blind) return;
+
   stars -= PRICES.blind;
+  updateStarsUI();
 
   const rarity = rollFromChanceTable(RARITY_CHANCE);
   const pool = ANIMALS_POOL[zoneKey]?.[rarity] || ANIMALS_POOL[zoneKey]?.common || ["🐾"];
   const emoji = pickFrom(pool);
 
-  const placed = addAnimalToZone(zoneKey, { emoji, rarity });
+  if((animalsByZone[zoneKey] || []).length >= PEN_MAX){
+    storageByZone[zoneKey].push({emoji, rarity});
+    saveState();
+    renderZoo();
+    renderShop();
+    setToast(`🎁 Blind Bag! Du fick ${emoji} (${rarity.toUpperCase()}). Hagen är full, så djuret hamnade i lagret.`);
+    return;
+  }
 
-  saveState();
-  updateStarsUI();
-  renderZoo();
-  renderShop();
+  beginPlacement({
+    kind:"new-animal",
+    zoneKey,
+    emoji,
+    rarity,
+    refund:PRICES.blind
+  });
 
-  const where = placed.placed === "storage" ? " (LAGER)" : " (HAGE)";
-  setToast(`🎁 Blind Bag! Du fick: ${emoji} (${rarity.toUpperCase()})${where}`);
+  setToast(`🎁 Du fick ${emoji} (${rarity.toUpperCase()})! Klicka var djuret ska bo.`);
 }
 
 function renderTodaySummary(){
