@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MGN-tränare – Mattezoo</title>
+<style>
+  body{
+    font-family: Arial, sans-serif;
+    background:#eef2f7;
+    margin:0;
+    padding:24px 14px 40px;
+  }
+  #container{
+    position:relative;
+    background:#fff;
+    padding:18px 18px 22px;
+    border-radius:14px;
+    width:900px;
+    max-width:100%;
+    margin:auto;
+    box-shadow:0 6px 22px rgba(0,0,0,0.09);
+    border-top:6px solid #4CAF50;
+    box-sizing:border-box;
+  }
+  h2{margin:0 0 6px; color:#2e7d32;}
+  p{margin:8px 0 10px; line-height:1.35;}
+  .muted{color:#566; font-size:14px;}
+
+  /* Top row */
+  .topRow{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+    padding-right:170px;
+  }
+  .backLink{
+    text-decoration:none;
+    color:#1b5e20;
+    background:#f1f8e9;
+    border:2px solid #c5e1a5;
+    padding:8px 10px;
+    border-radius:12px;
+    font-weight:800;
+    display:inline-block;
+  }
+  .backLink:hover{
+    box-shadow:0 4px 12px rgba(0,0,0,0.12);
+    transform:translateY(-1px);
+  }
+
+  /* Stars pill */
+  #scoreBox{
+    position:absolute;
+    top:14px;
+    right:14px;
+    background:#fffde7;
+    border:1px solid #ffe082;
+    border-radius:999px;
+    padding:7px 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-weight:800;
+    color:#f57f17;
+  }
+  #scoreBox .emoji{font-size:20px;}
+
+  /* Controls */
+  .row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  input, button{
+    padding:9px 10px;
+    border-radius:10px;
+    border:1px solid #cfcfcf;
+    font-size:16px;
+  }
+  button{
+    border:none;
+    background:#4CAF50;
+    color:#fff;
+    cursor:pointer;
+    font-weight:800;
+    border-radius:10px;
+  }
+  button:hover{background:#43a047;}
+  button.secondary{background:#546e7a;}
+  button.secondary:hover{background:#455a64;}
+  button:disabled{opacity:.55; cursor:not-allowed;}
+
+  /* Game */
+  #gameBox{
+    margin-top:12px;
+    background:#fafafa;
+    border:1px solid #ddd;
+    border-radius:12px;
+    padding:14px;
+  }
+
+  #questionLabel{
+    text-align:center;
+    font-weight:800;
+    color:#334;
+    margin:4px 0 10px;
+  }
+
+  #fractions{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:34px;
+    min-height:100px;
+    margin:6px 0 12px;
+  }
+
+  .fraction{
+    display:inline-flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    min-width:58px;
+    font-size:34px;
+    font-weight:900;
+    color:#1f2933;
+    line-height:1;
+  }
+  .fraction .num{
+    width:100%;
+    text-align:center;
+    border-bottom:3px solid #1f2933;
+    padding:0 8px 5px;
+    box-sizing:border-box;
+  }
+  .fraction .den{
+    width:100%;
+    text-align:center;
+    padding:5px 8px 0;
+    box-sizing:border-box;
+  }
+  .and{
+    font-size:24px;
+    font-weight:900;
+    color:#566;
+  }
+
+  #answerPrompt{
+    text-align:center;
+    font-size:18px;
+    font-weight:900;
+    color:#334;
+    margin-top:8px;
+  }
+  #answerRow{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-top:8px;
+  }
+  #answer{
+    width:150px;
+    text-align:center;
+    font-size:20px;
+    border-radius:999px;
+  }
+
+  #feedback{
+    text-align:center;
+    min-height:32px;
+    margin-top:10px;
+    font-weight:900;
+  }
+  .ok{color:#16a34a; font-size:18px;}
+  .bad{color:#dc2626; font-size:18px;}
+
+  #hintBox{
+    margin-top:12px;
+    color:#1b5e20;
+    background:#e8f5e9;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid #c8e6c9;
+    min-height:48px;
+    display:none;
+  }
+  #hintTitle{
+    font-weight:900;
+    margin-bottom:5px;
+  }
+  #hintText{
+    line-height:1.45;
+  }
+  .mathStep{
+    display:inline-block;
+    background:#fff;
+    border:1px solid #c8e6c9;
+    border-radius:8px;
+    padding:2px 7px;
+    font-weight:900;
+    margin:2px 2px;
+  }
+
+  #status{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:12px;
+    font-size:14px;
+    color:#334;
+  }
+  .statusPill{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:999px;
+    padding:6px 10px;
+    font-weight:900;
+  }
+
+  #afterRow{
+    margin-top:12px;
+    display:none;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:center;
+  }
+
+  #tip{
+    margin-top:12px;
+    font-style:italic;
+    color:#1b5e20;
+    background:#e8f5e9;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #c8e6c9;
+  }
+
+  @media (max-width:520px){
+    #scoreBox{position:static; margin-bottom:10px;}
+    .topRow{padding-right:0;}
+    #fractions{gap:22px;}
+    .fraction{font-size:30px;}
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="scoreBox" title="Stjärnor (delas med Mattezoo)">
+    <span class="emoji">⭐</span>
+    <span id="starsText">0</span>
+  </div>
+
+  <div class="topRow">
+    <div>
+      <h2>Minsta gemensamma nämnaren</h2>
+      <div class="muted">Hitta MGN till två bråk. Klara 10 uppgifter så får du 1 ⭐.</div>
+    </div>
+    <a class="backLink" href="index.html">⬅ Tillbaka till Mattezoo</a>
+  </div>
+
+  <p>
+    Titta på bråkens <b>nämnare</b> och skriv den minsta gemensamma nämnaren. Nämnarna är alltid ental.
+    Om svaret blir fel får du en ledtråd som hjälper dig steg för steg.
+  </p>
+
+  <div class="row" style="margin-top:10px;">
+    <button id="startBtn">Starta träningen</button>
+  </div>
+
+  <div id="gameBox" style="display:none;">
+    <div id="questionLabel">Vilken är minsta gemensamma nämnaren?</div>
+
+    <div id="fractions">
+      <div class="fraction" aria-label="första bråket">
+        <span class="num" id="num1">1</span>
+        <span class="den" id="den1">2</span>
+      </div>
+      <div class="and">och</div>
+      <div class="fraction" aria-label="andra bråket">
+        <span class="num" id="num2">1</span>
+        <span class="den" id="den2">3</span>
+      </div>
+    </div>
+
+    <div id="answerPrompt">MGN = ?</div>
+
+    <div id="answerRow">
+      <input id="answer" type="number" min="1" inputmode="numeric" placeholder="Svar" autocomplete="off" />
+      <button id="okBtn">OK</button>
+    </div>
+
+    <div id="feedback"></div>
+
+    <div id="hintBox">
+      <div id="hintTitle">💡 Ledtråd</div>
+      <div id="hintText"></div>
+    </div>
+
+    <div id="status">
+      <div class="statusPill">Uppgift: <b id="taskNumber">1</b>/10</div>
+      <div class="statusPill">Rätt: <b id="correctCount">0</b>/10</div>
+      <div class="statusPill">Ledtrådar på denna uppgift: <b id="hintCount">0</b></div>
+    </div>
+
+    <div id="afterRow">
+      <button id="againBtn" class="secondary">Kör ett nytt varv</button>
+    </div>
+
+    <div id="tip">
+      Tips: Börja med den största nämnaren. Går den mindre nämnaren jämnt upp i den?
+      Om inte, prova den största nämnaren × 2, × 3, × 4 …
+    </div>
+  </div>
+</div>
+
+<script src="daily.js"></script>
+<script src="today.js"></script>
+
+<script>
+/* =========================
+   MATTEZOO-NYCKLAR (DELAT)
+========================= */
+const KEY_STARS = "mathZooStars";
+const KEY_PROG  = "mathZooProgress";
+
+/* =========================
+   SPELSTATE
+========================= */
+const TASKS_PER_ROUND = 10;
+const MIN_DEN = 2;
+const MAX_DEN = 9;
+
+let current = null;
+let completed = 0;
+let hintStep = 0;
+let roundFinished = false;
+
+/* =========================
+   UI
+========================= */
+const starsText = document.getElementById("starsText");
+const startBtn = document.getElementById("startBtn");
+const gameBox = document.getElementById("gameBox");
+const num1El = document.getElementById("num1");
+const den1El = document.getElementById("den1");
+const num2El = document.getElementById("num2");
+const den2El = document.getElementById("den2");
+const answerInput = document.getElementById("answer");
+const okBtn = document.getElementById("okBtn");
+const feedbackDiv = document.getElementById("feedback");
+const hintBox = document.getElementById("hintBox");
+const hintText = document.getElementById("hintText");
+const taskNumberEl = document.getElementById("taskNumber");
+const correctCountEl = document.getElementById("correctCount");
+const hintCountEl = document.getElementById("hintCount");
+const afterRow = document.getElementById("afterRow");
+const againBtn = document.getElementById("againBtn");
+
+/* =========================
+   HJÄLPFUNKTIONER
+========================= */
+function safeParse(json, fallback){
+  try { return JSON.parse(json); } catch { return fallback; }
+}
+
+function gcd(a, b){
+  a = Math.abs(a);
+  b = Math.abs(b);
+  while(b !== 0){
+    const t = b;
+    b = a % b;
+    a = t;
+  }
+  return a;
+}
+
+function lcm(a, b){
+  return Math.abs(a * b) / gcd(a, b);
+}
+
+function randInt(min, max){
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomCoprimeNumerator(den){
+  const options = [];
+  for(let n = 1; n < den; n++){
+    if(gcd(n, den) === 1) options.push(n);
+  }
+  return options[randInt(0, options.length - 1)];
+}
+
+/* =========================
+   STJÄRNOR + PROGRESS
+========================= */
+function getStars(){
+  return parseInt(localStorage.getItem(KEY_STARS) || "0", 10);
+}
+
+function setStars(n){
+  localStorage.setItem(KEY_STARS, JSON.stringify(n));
+}
+
+function incStars(n=1){
+  setStars(getStars() + n);
+  updateStarsUI();
+}
+
+function getProg(){
+  return safeParse(localStorage.getItem(KEY_PROG) || "{}", {});
+}
+
+function incMgnProg(n=1){
+  const p = getProg();
+  p.mgn = (p.mgn || 0) + n;
+  localStorage.setItem(KEY_PROG, JSON.stringify(p));
+}
+
+function updateStarsUI(){
+  starsText.textContent = String(getStars());
+}
+
+/* =========================
+   UPPGIFTER
+========================= */
+function makeQuestion(){
+  let d1, d2;
+
+  // Undvik lika nämnare. Blanda enkla och mer utmanande par.
+  do{
+    d1 = randInt(MIN_DEN, MAX_DEN);
+    d2 = randInt(MIN_DEN, MAX_DEN);
+  } while(d1 === d2);
+
+  const n1 = randomCoprimeNumerator(d1);
+  const n2 = randomCoprimeNumerator(d2);
+
+  return {
+    n1,
+    d1,
+    n2,
+    d2,
+    answer: lcm(d1, d2)
+  };
+}
+
+function renderQuestion(){
+  current = makeQuestion();
+  hintStep = 0;
+
+  num1El.textContent = current.n1;
+  den1El.textContent = current.d1;
+  num2El.textContent = current.n2;
+  den2El.textContent = current.d2;
+
+  taskNumberEl.textContent = String(completed + 1);
+  correctCountEl.textContent = String(completed);
+  hintCountEl.textContent = "0";
+
+  answerInput.value = "";
+  answerInput.disabled = false;
+  okBtn.disabled = false;
+  answerInput.focus();
+
+  feedbackDiv.textContent = "";
+  feedbackDiv.className = "";
+  hintBox.style.display = "none";
+  hintText.innerHTML = "";
+}
+
+/* =========================
+   LEDTRÅDSTRAPPA
+========================= */
+function showNextHint(){
+  const big = Math.max(current.d1, current.d2);
+  const small = Math.min(current.d1, current.d2);
+
+  hintStep += 1;
+  hintCountEl.textContent = String(hintStep);
+  hintBox.style.display = "block";
+
+  // Första testet är alltid den största nämnaren själv.
+  if(hintStep === 1){
+    if(big % small === 0){
+      hintText.innerHTML =
+        `Börja med den största nämnaren: <span class="mathStep">${big}</span>. ` +
+        `Går <b>${small}</b> jämnt upp i ${big}? <b>Ja!</b> ` +
+        `Då är ${big} den minsta gemensamma nämnaren.`;
+    } else {
+      hintText.innerHTML =
+        `Börja med den största nämnaren: <span class="mathStep">${big}</span>. ` +
+        `Går <b>${small}</b> jämnt upp i ${big}? <b>Nej.</b> ` +
+        `Då behöver vi prova nästa multipel av ${big}.`;
+    }
+    return;
+  }
+
+  // Därefter provas största nämnaren × 2, × 3, × 4 ...
+  const multiplier = hintStep;
+  const candidate = big * multiplier;
+  const divisible = candidate % small === 0;
+
+  if(divisible){
+    hintText.innerHTML =
+      `Prova <span class="mathStep">${big} × ${multiplier} = ${candidate}</span>. ` +
+      `Går <b>${small}</b> jämnt upp i ${candidate}? <b>Ja!</b> ` +
+      `Då har du hittat MGN.`;
+  } else {
+    hintText.innerHTML =
+      `Prova <span class="mathStep">${big} × ${multiplier} = ${candidate}</span>. ` +
+      `Går <b>${small}</b> jämnt upp i ${candidate}? <b>Nej.</b> ` +
+      `Prova nästa multipel av ${big}.`;
+  }
+}
+
+/* =========================
+   SPELFLÖDE
+========================= */
+function startRound(){
+  completed = 0;
+  roundFinished = false;
+
+  gameBox.style.display = "block";
+  afterRow.style.display = "none";
+  startBtn.textContent = "Starta om";
+  renderQuestion();
+}
+
+function finishRound(){
+  roundFinished = true;
+  incStars(1);
+  incMgnProg(1);
+
+  // Om daily.js senare får stöd för "mgn" fungerar detta direkt.
+  if(window.mzDailyIncrement) {
+    try { window.mzDailyIncrement("mgn", 1); } catch(e) {}
+  }
+
+  feedbackDiv.textContent = "🎉 Klart! Du klarade 10 MGN-uppgifter och får 1 ⭐!";
+  feedbackDiv.className = "ok";
+  hintBox.style.display = "none";
+
+  answerInput.disabled = true;
+  okBtn.disabled = true;
+  correctCountEl.textContent = String(TASKS_PER_ROUND);
+  taskNumberEl.textContent = String(TASKS_PER_ROUND);
+  afterRow.style.display = "flex";
+}
+
+function checkAnswer(){
+  if(!current || roundFinished) return;
+
+  const userAnswer = parseInt(answerInput.value, 10);
+
+  if(Number.isNaN(userAnswer)){
+    feedbackDiv.textContent = "Skriv ett heltal som svar.";
+    feedbackDiv.className = "bad";
+    answerInput.focus();
+    return;
+  }
+
+  if(userAnswer === current.answer){
+    completed += 1;
+    correctCountEl.textContent = String(completed);
+    feedbackDiv.textContent = "Rätt! 🌿";
+    feedbackDiv.className = "ok";
+    hintBox.style.display = "none";
+
+    answerInput.disabled = true;
+    okBtn.disabled = true;
+
+    if(completed >= TASKS_PER_ROUND){
+      setTimeout(finishRound, 450);
+    } else {
+      setTimeout(renderQuestion, 500);
+    }
+  } else {
+    feedbackDiv.textContent = "Inte riktigt. Använd ledtråden och försök igen!";
+    feedbackDiv.className = "bad";
+    showNextHint();
+    answerInput.value = "";
+    answerInput.focus();
+  }
+}
+
+/* =========================
+   EVENTS + INIT
+========================= */
+startBtn.addEventListener("click", startRound);
+againBtn.addEventListener("click", startRound);
+okBtn.addEventListener("click", checkAnswer);
+
+answerInput.addEventListener("keydown", (e)=>{
+  if(e.key === "Enter") checkAnswer();
+});
+
+updateStarsUI();
+</script>
+</body>
+</html>
